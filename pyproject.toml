@@ -1,0 +1,11 @@
+[tool.black]
+line-length = 100
+
+[tool.isort]
+skip_glob = ["**/venv/*"]
+
+# required for compatibility with black:
+profile = "black"
+
+# To maintain consistency with other settings
+line_length = 100
