@@ -32,7 +32,7 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-
+from exceptions import InvalidStateException
 from .base_cli import BaseCLI
 
 
@@ -140,7 +140,16 @@ class TravelCLI(BaseCLI):
             albums: An Album object
         """
         query_result = self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
-        assert len(query_result) == 1, "Was expecting only one Album"
+        if len(query_result) > 1:
+            raise InvalidStateException(
+                f"More than one album exists for Place: {place.place_id} under Destination: {place.destination_id}"
+            )
+
+        if len(query_result) == 0:
+            raise InvalidStateException(
+                f"No album exists for Place: {place.place_id} under Destination: {place.destination_id}"
+            )
+
         return Album(**query_result[0])
 
     def add_destination(self):
