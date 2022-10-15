@@ -42,6 +42,11 @@ class TravelCLI(BaseCLI):
     PHOTO_PK = f"{Namespaces.TRAVEL}#{TravelEntities.PHOTO}"
     ALBUM_PK = f"{Namespaces.TRAVEL}#{TravelEntities.ALBUM}"
 
+    DESTINATION_SK_FS = ""
+    PLACE_SK_FS = "{destination_id}#{place_id}"
+    PHOTO_SK_FS = "{place_id}#{photo_id}"
+    ALBUM_SK_FS = "{place_id}#{album_id}"
+
     def __init__(
         self,
         google_maps_client: GoogleMapsClient,
@@ -284,7 +289,8 @@ class TravelCLI(BaseCLI):
 
         # Check if a record for the place already exists
         record = self.ddb_client.get_equals(
-            f"{Namespaces.TRAVEL}#{TravelEntities.PLACE}", place.place_id
+            self.PLACE_PK,
+            self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
         )
 
         # If a record already exists, don't add it again
@@ -370,8 +376,11 @@ class TravelCLI(BaseCLI):
             place_id=place.place_id,
         )
 
-        sk: str = f"{place.place_id}#{album.album_id}"
-        self.ddb_client.put(self.ALBUM_PK, sk, album.asdict())
+        self.ddb_client.put(
+            self.ALBUM_PK,
+            self.ALBUM_SK_FS.format(place_id=place.place_id, album_id=album.album_id),
+            album.asdict(),
+        )
 
         if existing_albums:
             for album in existing_albums:
@@ -388,8 +397,10 @@ class TravelCLI(BaseCLI):
         ]
 
     def _delete_existing_album(self, album: Album):
-        sk: str = f"{album.place_id}#{album.album_id}"
-        self.ddb_client.delete(pk=self.ALBUM_PK, sk=sk)
+        self.ddb_client.delete(
+            pk=self.ALBUM_PK,
+            sk=self.ALBUM_SK_FS.format(place_id=album.place_id, album_id=album.album_id),
+        )
 
     def add_photos(self, destination: Destination = None, place: Place = None):
         """
@@ -440,7 +451,6 @@ class TravelCLI(BaseCLI):
 
     def _process_photos(self, destination: Destination, place: Place):
         print_figlet(APP_NAME)
-        # TODO null check on album
         album = self._get_album(place)
         photos = self.google_photos_client.get_album_photos(album.album_id)
 
@@ -468,8 +478,11 @@ class TravelCLI(BaseCLI):
                 hsh=hsh,
                 thumbnail_src=thumbnail_src,
             )
-            sk: str = place.place_id + "#" + photo.photo_id
-            self.ddb_client.put(self.PHOTO_PK, sk, photo.asdict())
+            self.ddb_client.put(
+                self.PHOTO_PK,
+                self.PHOTO_SK_FS.format(place_id=place.place_id, photo_id=photo.photo_id),
+                photo.asdict(),
+            )
             clr_line()
 
     def _upload_photo_to_s3(self, img: Image.Image, destination: Destination, place: Place):
@@ -565,8 +578,11 @@ class TravelCLI(BaseCLI):
             place = places[sel - 1]
 
         new_place: Place = edit_obj(place)
-        sk: str = place.destination_id + "#" + place.place_id
-        self.ddb_client.put(self.PLACE_PK, sk, new_place.asdict())
+        self.ddb_client.put(
+            self.PLACE_PK,
+            self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
+            new_place.asdict(),
+        )
 
     def delete_destination(self):
         """
@@ -616,7 +632,11 @@ class TravelCLI(BaseCLI):
 
         place = places[sel - 1]
 
-        sk: str = f"{place.destination_id}#{place.place_id}"
-        self.ddb_client.delete(pk=self.PLACE_PK, sk=sk)
+        self.ddb_client.delete(
+            pk=self.PLACE_PK,
+            sk=self.PLACE_SK_FS.format(
+                destination_id=place.destination_id, place_id=place.place_id
+            ),
+        )
 
         return
