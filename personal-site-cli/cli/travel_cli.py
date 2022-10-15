@@ -2,17 +2,36 @@ from typing import List, Optional
 
 from PIL import Image
 
-from clients import (DDBClient, GoogleMapsClient, GooglePhotosClient,
-                     Namespaces, S3Client, TravelEntities)
+from clients import (
+    DDBClient,
+    GoogleMapsClient,
+    GooglePhotosClient,
+    Namespaces,
+    S3Client,
+    TravelEntities,
+)
 from models.travel import Album, Destination, Photo, Place
-from utils.cli_utils import (ask_yes_no_question, clr_line, cls, edit_obj,
-                             get_input, get_selection, print_double_list,
-                             print_figlet, print_single_list)
+from utils.cli_utils import (
+    ask_yes_no_question,
+    clr_line,
+    cls,
+    edit_obj,
+    get_input,
+    get_selection,
+    print_double_list,
+    print_figlet,
+    print_single_list,
+)
 from utils.constants import APP_NAME
-from utils.photo_processing import (IMAGE_TYPE, PHOTO_MAX_SIZE,
-                                    THUMBNAIL_MAX_SIZE, download_image,
-                                    hash_buffer_md5, rescale_image,
-                                    save_image_to_buffer)
+from utils.photo_processing import (
+    IMAGE_TYPE,
+    PHOTO_MAX_SIZE,
+    THUMBNAIL_MAX_SIZE,
+    download_image,
+    hash_buffer_md5,
+    rescale_image,
+    save_image_to_buffer,
+)
 
 from .base_cli import BaseCLI
 
@@ -249,7 +268,7 @@ class TravelCLI(BaseCLI):
 
         place = Place(
             **data,
-            name=suggestions[sel]["structured_formatting"]["main_text"],
+            name=selected_place["structured_formatting"]["main_text"],
             destination_id=destination.place_id,
             city=destination.name,
         )

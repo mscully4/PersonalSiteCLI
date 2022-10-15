@@ -7,8 +7,7 @@ from clients import DDBClient, Namespaces, ResumeEntities, S3Client
 from models.resume import Education, Job, Skill
 from utils.cli_utils import cls, get_input, get_selection, print_figlet
 from utils.constants import APP_NAME
-from utils.photo_processing import (IMAGE_TYPE, download_image,
-                                    hash_buffer_md5, save_image_to_buffer)
+from utils.photo_processing import IMAGE_TYPE, download_image, hash_buffer_md5, save_image_to_buffer
 
 from .base_cli import BaseCLI
 
