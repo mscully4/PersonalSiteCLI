@@ -4,6 +4,7 @@ from boto3 import Session
 from boto3.dynamodb.conditions import ConditionBase, Key
 from mypy_boto3_dynamodb.service_resource import Table
 from mypy_boto3_dynamodb.type_defs import PutItemOutputTableTypeDef, QueryOutputTableTypeDef
+from exceptions import DynamoDBException
 
 
 class Namespaces:
@@ -41,17 +42,20 @@ class DDBClient:
     def _put_item(self, data: Dict[str, Any]) -> None:
         resp: PutItemOutputTableTypeDef = self.table.put_item(Item=data)
 
-        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+        if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            raise DynamoDBException(f"Put operation failed: {resp}")
         return
 
-    def _delete_item(self, pk: str, sk: str) -> None:
+    def _delete_item(self, pk: str, sk: str = None) -> None:
         key = {self.PARTITION_KEY: pk}
         if sk:
             key[self.SORT_KEY] = sk
 
         resp = self.table.delete_item(Key=key)
 
-        assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
+        if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            raise DynamoDBException(f"Delete operation failed: {resp}")
+
         return
 
     def get_equals(self, partition_key: str, sort_key: str = None) -> List:

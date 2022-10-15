@@ -4,3 +4,7 @@ class PersonalSiteCLIException(Exception):
 
 class InvalidStateException(PersonalSiteCLIException):
     """Raised when the state of the database is invalid"""
+
+
+class DynamoDBException(PersonalSiteCLIException):
+    """Raised when a DynamoDB operation fails"""
