@@ -28,7 +28,7 @@ class PersonalSiteCLI(BaseCLI):
 
         self._run = False
 
-    def _print_menu(self):
+    def _print_menu(self) -> None:
         cls()
 
         print_figlet(APP_NAME)
@@ -40,7 +40,7 @@ class PersonalSiteCLI(BaseCLI):
 
         print()
 
-    async def run(self):
+    async def run(self) -> None:
         """
         The method running the CLI application.  The user can select menu prompts to perform different tasks
         """

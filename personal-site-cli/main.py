@@ -12,7 +12,7 @@ from conf.config import Config
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
-async def main():
+async def main() -> None:
     # Retrieving keys from config file
     config_path = os.path.join(ROOT_DIR + "/conf/config.yaml")
     assert os.path.exists(config_path)

@@ -9,7 +9,7 @@ PHOTO_MAX_SIZE = 2048
 IMAGE_TYPE = "png"
 
 
-def download_image(url: str):
+def download_image(url: str) -> Image.Image:
     r: requests.Response = requests.get(url)
     r.raw.decode_content = True  # handle spurious Content-Encoding
 

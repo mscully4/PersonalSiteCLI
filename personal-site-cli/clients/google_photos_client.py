@@ -1,6 +1,7 @@
 import asyncio
 import os
 import pickle
+from typing import Any, Dict, List
 
 from fuzzywuzzy import fuzz
 from google.auth.transport.requests import Request
@@ -17,7 +18,7 @@ class GooglePhotosClient(object):
         self.albums = asyncio.get_event_loop().create_task(self.get_albums())
         self.done = None
 
-    def _create_service(self, config, scopes):
+    def _create_service(self, config, scopes) -> Any:
         """
         A method for authenticating with Google
         Copy/Pasted this directly from Google Documentation
@@ -42,7 +43,7 @@ class GooglePhotosClient(object):
         service = build(API_SERVICE_NAME, API_VERSION, credentials=cred, static_discovery=False)
         return service
 
-    async def get_albums(self):
+    async def get_albums(self) -> List:
         """
         A method for retrieving all the Google Photos albums for a user
 
@@ -65,7 +66,7 @@ class GooglePhotosClient(object):
         self.done = True
         return a
 
-    def get_album_id(self, album_name):
+    def get_album_id(self, album_name: str):
         """
         A method for returning the album id given an album name
         """
@@ -74,7 +75,7 @@ class GooglePhotosClient(object):
             if album_name == album["title"]:
                 return album["id"]
 
-    def get_album_info(self, album_id):
+    def get_album_info(self, album_id) -> Dict:
         """
         A method for retrieving album metadata given an album id
 
@@ -86,7 +87,7 @@ class GooglePhotosClient(object):
         """
         return self.service.albums().get(albumId=album_id).execute()
 
-    def get_album_photos(self, album_id):
+    def get_album_photos(self, album_id) -> List:
         """
         A method for retrieivng urls for all the photos in an album
 
@@ -114,7 +115,7 @@ class GooglePhotosClient(object):
 
         return photos
 
-    def get_album_suggestions(self, albums, entry, n=5):
+    def get_album_suggestions(self, albums: List, entry: str, n=5):
         """
         A method for calculating the closest matching existing album names given a text entry
         """

@@ -2,22 +2,21 @@ import math
 import os
 import readline
 from typing import Any, List
-
 from pyfiglet import Figlet
 
 
-def print_figlet(text: str):
+def print_figlet(text: str) -> None:
     cls()
     print(Figlet(font="slant").renderText(text))
 
 
-def print_single_list(sugs: List[str]):
+def print_single_list(sugs: List[str]) -> None:
     print("Enter < to go back")
     for i, sug in enumerate(sugs):
         print(f"{i+1}. {sug}")
 
 
-def print_double_list(lst: List[Any]):
+def print_double_list(lst: List[Any]) -> None:
     half = math.ceil(len(lst) / 2)
 
     print("Enter < to go back")
@@ -29,7 +28,7 @@ def print_double_list(lst: List[Any]):
             print()
 
 
-def get_selection(minimum: int, maximum: int, allowed_chars: str = "/<*"):
+def get_selection(minimum: int, maximum: int, allowed_chars: str = "/<*") -> int:
     """
     A function for getting a numerical selection from a user. If the selection
     is valid it will be returned, otherwise -1 will be returned
@@ -50,7 +49,7 @@ def get_selection(minimum: int, maximum: int, allowed_chars: str = "/<*"):
     return selection_as_int
 
 
-def get_input(msg: str = "Input", default=None):
+def get_input(msg: str = "Input", default: str = None) -> str:
     """
     Prompts the user for input and returns that input
     """
@@ -68,7 +67,7 @@ def ask_yes_no_question(text: str) -> bool:
     return input(text).lower() in ("y", "yes")
 
 
-def edit_obj(obj: Any):
+def edit_obj(obj: Any) -> Any:
     """
     Edits the information of a destination in the dictionary
     """
@@ -86,15 +85,15 @@ def edit_obj(obj: Any):
     return obj.__class__(**items)
 
 
-def cls():
+def cls() -> None:
     os.system("cls" if os.name == "nt" else "clear")
 
 
-def clr_line():
+def clr_line() -> None:
     print("\033[A                             \033[A")
 
 
-def rlinput(prompt, prefill: str = ""):
+def rlinput(prompt, prefill: str = "") -> str:
     readline.set_startup_hook(lambda: readline.insert_text(prefill))
     try:
         return input(prompt)

@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple, Callable
 
 from attr import fields_dict
 
@@ -26,9 +26,13 @@ class ResumeCLI(BaseCLI):
         self.ddb_client = ddb_client
 
         self._run = False
-        self._commands = [self.add_education, self.add_job, self.add_skill]
+        self._commands: List[Callable] = [
+            self.add_education,
+            self.add_job,
+            self.add_skill,
+        ]
 
-    def _print_menu(self):
+    def _print_menu(self) -> None:
         """
         A method that prints the menu options for the CLI
         """
@@ -47,7 +51,7 @@ class ResumeCLI(BaseCLI):
 
         print()
 
-    async def run(self):
+    async def run(self) -> None:
         """
         A method for perfroming a task in the Travel CLI
         """
@@ -63,7 +67,7 @@ class ResumeCLI(BaseCLI):
 
             self._commands[sel - 1]()
 
-    def _download_image(self, prompt: str):
+    def _download_image(self, prompt: str) -> str:
         img = download_image(get_input(prompt))
         buffer = save_image_to_buffer(img)
         hsh = hash_buffer_md5(buffer)
@@ -91,7 +95,7 @@ class ResumeCLI(BaseCLI):
         job = Job(**data)
         self.ddb_client.put(self.JOB_PK, job.id, job.asdict())
 
-    def add_education(self):
+    def add_education(self) -> None:
         print_figlet(APP_NAME)
 
         data: Dict[str, Any] = {}
@@ -108,7 +112,7 @@ class ResumeCLI(BaseCLI):
         edu = Education(**data)
         self.ddb_client.put(self.EDUCATION_PK, edu.id, edu.asdict())
 
-    def add_skill(self):
+    def add_skill(self) -> None:
         print_figlet(APP_NAME)
 
         data = {}

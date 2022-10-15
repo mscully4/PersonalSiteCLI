@@ -1,4 +1,4 @@
-from typing import Dict
+from typing import Dict, List
 
 import googlemaps as gm
 
@@ -10,7 +10,7 @@ class GoogleMapsClient(object):
     def __init__(self, api_key: str):
         self._gm: gm.Client = gm.Client(key=api_key)
 
-    def get_destination_suggestions(self, text: str):
+    def get_destination_suggestions(self, text: str) -> List:
         """
         A method for autocompleting city names given a text entry
         """
@@ -18,7 +18,7 @@ class GoogleMapsClient(object):
 
     def get_place_suggestions(
         self, text: str, location=None, radius: int = DEFAULT_SEARCH_RADIUS_METERS
-    ):
+    ) -> List:
         """
         A method for autocompleting places given a text entry
 

@@ -38,13 +38,13 @@ class DDBClient:
         resp: QueryOutputTableTypeDef = self.table.query(KeyConditionExpression=filtering_exp)
         return [item["Entity"] for item in resp["Items"]]
 
-    def _put_item(self, data: Dict[str, Any]):
+    def _put_item(self, data: Dict[str, Any]) -> None:
         resp: PutItemOutputTableTypeDef = self.table.put_item(Item=data)
 
         assert resp["ResponseMetadata"]["HTTPStatusCode"] == 200
-        return True
+        return
 
-    def _delete_item(self, pk: str, sk: str):
+    def _delete_item(self, pk: str, sk: str) -> None:
         key = {self.PARTITION_KEY: pk}
         if sk:
             key[self.SORT_KEY] = sk
@@ -66,9 +66,9 @@ class DDBClient:
         ).begins_with(sort_key)
         return self._query_table(filtering_exp)
 
-    def put(self, pk: str, sk: str, entity: Dict[str, Any]):
+    def put(self, pk: str, sk: str, entity: Dict[str, Any]) -> None:
         data = {self.PARTITION_KEY: pk, self.SORT_KEY: sk, self.ENTITY: entity}
         self._put_item(data)
 
-    def delete(self, pk: str, sk: str):
+    def delete(self, pk: str, sk: str) -> None:
         self._delete_item(pk, sk)
