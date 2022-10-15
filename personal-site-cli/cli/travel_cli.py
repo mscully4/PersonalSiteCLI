@@ -80,7 +80,6 @@ class TravelCLI(BaseCLI):
                 self._run = False
                 return
 
-            # print(self._commands[sel - 1])
             if self._commands[sel - 1][1]:
                 await self._commands[sel - 1][0]()
             else:
