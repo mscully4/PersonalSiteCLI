@@ -202,7 +202,7 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(1, len(destinations), allowed_chars="/<")
+            sel = get_selection(0, len(destinations), allowed_chars="/<")
             if sel == "/" or sel == "<":
                 cls()
                 return
