@@ -310,6 +310,9 @@ class TravelCLI(BaseCLI):
             place = places[sel - 1]
 
         print_figlet(APP_NAME)
+        if existing_albums := self._get_existing_albums(place):
+            print(f"An Album(s) already exists for this place: {existing_albums}")
+
         inp = get_input(
             "Enter the album name to use the autocomplete functionality.",
             f"{destination.name} -- {place.name}",
@@ -343,9 +346,23 @@ class TravelCLI(BaseCLI):
         sk: str = f"{place.place_id}#{album.album_id}"
         self.ddb_client.put(self.ALBUM_PK, sk, album.asdict())
 
+        if existing_albums:
+            for album in existing_albums:
+                self._delete_existing_album(album)
+
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add photos to this album? (y/n): "):
             self.add_photos(destination=destination, place=place)
+
+    def _get_existing_albums(self, place: Place) -> List[Album]:
+        return [
+            Album(**album)
+            for album in self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
+        ]
+
+    def _delete_existing_album(self, album: Album):
+        sk: str = f"{album.place_id}#{album.album_id}"
+        self.ddb_client.delete(pk=self.ALBUM_PK, sk=sk)
 
     def add_photos(self, destination: Destination = None, place: Place = None):
         """
