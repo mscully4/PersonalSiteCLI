@@ -1,6 +1,7 @@
 from typing import Dict, List
 
 import googlemaps as gm
+from models.google_maps import GeocodedDestination, GeocodedPlace
 
 
 class GoogleMapsClient(object):
@@ -30,52 +31,51 @@ class GoogleMapsClient(object):
         res = self._gm.places_autocomplete(text, location=location, radius=radius)
         return res
 
-    def geocode_destination(self, place_id: str) -> Dict:
+    def geocode_destination(self, place_id: str) -> GeocodedDestination:
         """
         A method for retrieving information about a city given its place_id
         """
-        s = self._gm.reverse_geocode(place_id)[0]
+        geo_data = self._gm.reverse_geocode(place_id)[0]
 
-        for comp in s["address_components"]:
+        country, country_code = "", ""
+        for comp in geo_data["address_components"]:
             if "country" in comp["types"]:
                 country = comp["long_name"]
                 country_code = comp["short_name"]
 
-        data = {
-            "name": s["address_components"][0]["long_name"],
-            "country": country,
-            "country_code": country_code,
-            "latitude": s["geometry"]["location"]["lat"],
-            "longitude": s["geometry"]["location"]["lng"],
-            "place_id": place_id,
-        }
-        return data
+        return GeocodedDestination(
+            name=geo_data["address_components"][0]["long_name"],
+            country=country,
+            country_code=country_code,
+            latitude=geo_data["geometry"]["location"]["lat"],
+            longitude=geo_data["geometry"]["location"]["lat"],
+        )
 
-    def geocode_place(self, place_id: str) -> Dict:
+    def geocode_place(self, place_id: str) -> GeocodedPlace:
         """
         A method for retrieving information about a place given its place_id
         """
-        s = self._gm.reverse_geocode(place_id)[0]
+        geo_data = self._gm.reverse_geocode(place_id)[0]
 
-        country, zip_code, street, street_number, state = "", "", "", "", ""
-        for comp in s["address_components"]:
+        country, zip_code, street, street_number, state = [""] * 5
+        for comp in geo_data["address_components"]:
             if "country" in comp["types"]:
                 country = comp["long_name"]
-            elif "postal_code" in comp["types"]:
+            if "postal_code" in comp["types"]:
                 zip_code = comp["long_name"]
-            elif "street_number" in comp["types"]:
+            if "street_number" in comp["types"]:
                 street_number = comp["long_name"]
-            elif "route" in comp["types"]:
+            if "route" in comp["types"]:
                 street = comp["long_name"]
-            elif "administrative_area_level_1" in comp["types"]:
+            if "administrative_area_level_1" in comp["types"]:
                 state = comp["long_name"]
 
-        return {
-            "place_id": s["place_id"],
-            "address": street + " " + street_number,
-            "state": state,
-            "country": country,
-            "zip_code": zip_code,
-            "latitude": s["geometry"]["location"]["lat"],
-            "longitude": s["geometry"]["location"]["lng"],
-        }
+        return GeocodedPlace(
+            place_id=geo_data["place_id"],
+            address=street + " " + street_number,
+            state=state,
+            country=country,
+            zip_code=zip_code,
+            latitude=geo_data["geometry"]["location"]["lat"],
+            longitude=geo_data["geometry"]["location"]["lng"],
+        )

@@ -11,6 +11,7 @@ from clients import (
     TravelEntities,
 )
 from models.travel import Album, Destination, Photo, Place
+from models.google_maps import GeocodedDestination, GeocodedPlace
 from utils.cli_utils import (
     ask_yes_no_question,
     clr_line,
@@ -205,9 +206,9 @@ class TravelCLI(BaseCLI):
         else:
             id_ = suggestions[sel]["place_id"]
 
-        data = self.google_maps_client.geocode_destination(id_)
-        # Set type to "" to allow user to change in edit call
-        destination = Destination(**data, type="")
+        geocoded_destination: GeocodedDestination = self.google_maps_client.geocode_destination(id_)
+
+        destination = Destination(place_id=id_, **geocoded_destination.asdict())
 
         # Check if a record for the Destination already exists
         record = self.ddb_client.get_equals(self.DESTINATION_PK, destination.place_id)
@@ -278,10 +279,10 @@ class TravelCLI(BaseCLI):
         # The list displayed to the user starts at 1, so decrement
         selected_place = suggestions[sel - 1]
 
-        data = self.google_maps_client.geocode_place(selected_place["place_id"])
+        data: GeocodedPlace = self.google_maps_client.geocode_place(selected_place["place_id"])
 
         place = Place(
-            **data,
+            **data.asdict(),
             name=selected_place["structured_formatting"]["main_text"],
             destination_id=destination.place_id,
             city=destination.name,
