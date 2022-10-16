@@ -227,9 +227,13 @@ class TravelCLI(BaseCLI):
         # Check if a record for the Destination already exists
         record = self.ddb_client.get_equals(self.DESTINATION_PK, destination.place_id)
 
-        # If a record already exists, don't add it again
-        if len(record) == 0:
-            self.edit_destination(destination)
+        # If a record already exists for the Destination, ensure the user wants to continue
+        if record and not ask_yes_no_question(
+            f"A record already exists for destination: {destination.place_id}, continue?"
+        ):
+            return
+
+        self.edit_destination(destination)
 
         return
 
@@ -322,9 +326,13 @@ class TravelCLI(BaseCLI):
             self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
         )
 
-        # If a record already exists, don't add it again
-        if len(record) == 0:
-            self.edit_place(destination, place)
+        # If a record already exists for the Destination, ensure the user wants to continue
+        if record and not ask_yes_no_question(
+            f"A record already exists for place: {place.place_id}, continue?"
+        ):
+            return
+
+        self.edit_place(destination, place)
 
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add an album to this place? (y/n): "):
