@@ -25,14 +25,8 @@ class GoogleMapsClient(object):
     ) -> List:
         """
         A method for autocompleting places given a text entry
-
-        Arguments:
-            text <str>: A place name
-            location <list>: A list of lat, long coordinates
-            radius <str>: The radius (in meters) from location to focus the search on
         """
-        res = self._gm.places_autocomplete(text, location=location, radius=radius)
-        return res
+        return self._gm.places_autocomplete(text, location=location, radius=radius)
 
     def geocode_destination(self, place_id: str) -> GeocodedDestination:
         """
