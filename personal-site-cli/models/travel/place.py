@@ -8,7 +8,7 @@ def convert_to_decimal(field) -> Decimal:
     return Decimal(str(field))
 
 
-@frozen()
+@frozen(auto_attribs=True)
 class Place:
     name: str
     place_id: str

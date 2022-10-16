@@ -8,7 +8,7 @@ def convert_to_decimal(field) -> Decimal:
     return Decimal(str(field))
 
 
-@frozen()
+@frozen(auto_attribs=True)
 class Destination:
     place_id: str
     name: str
@@ -16,7 +16,7 @@ class Destination:
     country_code: str
     latitude: Decimal = field(converter=convert_to_decimal)
     longitude: Decimal = field(converter=convert_to_decimal)
-    type: str
+    type: str = field(default="")
 
     def asdict(self):
         return asdict(self)
