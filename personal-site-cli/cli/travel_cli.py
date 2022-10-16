@@ -23,7 +23,11 @@ from utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from utils.constants import APP_NAME
+from utils.constants import (
+    APP_NAME,
+    MenuNavigationCodes,
+    MenuNavigationUserCommands,
+)
 from utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,
@@ -99,7 +103,7 @@ class TravelCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._commands), allowed_chars="")
+            sel = get_selection(1, len(self._commands), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
@@ -166,7 +170,7 @@ class TravelCLI(BaseCLI):
 
         # Add Destination
         inp = get_input("Enter destination name to use the autocomplete functionality.")
-        if inp in ["/", "<"]:
+        if inp in [MenuNavigationUserCommands.GO_TO_MAIN_MENU, MenuNavigationUserCommands.GO_BACK]:
             cls()
             return
 
@@ -176,12 +180,22 @@ class TravelCLI(BaseCLI):
             print_single_list([suggestion["description"] for suggestion in suggestions])
             print(f"{len(suggestions) + 1}. Enter Google Place ID Manually")
             print()
-            sel = get_selection(0, len(suggestions) + 1) - 1
+            sel = (
+                get_selection(
+                    0,
+                    len(suggestions) + 1,
+                    [
+                        MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                        MenuNavigationUserCommands.GO_BACK,
+                    ],
+                )
+                - 1
+            )
 
-            if sel == "/":
+            if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
                 cls()
                 return
-            elif sel == "<":
+            elif sel == MenuNavigationCodes.GO_BACK:
                 self.add_destination()
                 return
 
@@ -196,10 +210,10 @@ class TravelCLI(BaseCLI):
             print()
 
             id_ = input("Place ID: ")
-            if id_ == "/":
+            if id_ == MenuNavigationCodes.GO_TO_MAIN_MENU:
                 cls()
                 return
-            elif id_ == "<":
+            elif id_ == MenuNavigationCodes.GO_BACK:
                 self.add_destination()
                 return
 
@@ -236,8 +250,15 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(0, len(destinations), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                0,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_BACK,
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                ],
+            )
+            if sel in [MenuNavigationCodes.GO_BACK, MenuNavigationCodes.GO_TO_MAIN_MENU]:
                 cls()
                 return
 
@@ -267,12 +288,19 @@ class TravelCLI(BaseCLI):
         if not destinations:
             destinations = self._get_destinations()
 
-        sel = get_selection(0, len(destinations), allowed_chars="/<")
-        if sel == "/":
+        sel = get_selection(
+            0,
+            len(destinations),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
+        if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
             cls()
             return
 
-        elif sel == "<":
+        elif sel == MenuNavigationUserCommands.GO_BACK:
             await self.add_place(destination=destination)
             return
 
@@ -323,8 +351,18 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(1, len(destinations), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                1,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_BACK,
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                ],
+            )
+            if sel in [
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ]:
                 cls()
                 return
 
@@ -335,8 +373,18 @@ class TravelCLI(BaseCLI):
             places = self._get_places(destination)
             print_double_list(places)
             print()
-            sel = get_selection(1, len(places), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                1,
+                len(places),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_BACK,
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                ],
+            )
+            if sel in [
+                MenuNavigationUserCommands.GO_BACK,
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+            ]:
                 cls()
                 return
 
@@ -366,7 +414,7 @@ class TravelCLI(BaseCLI):
         print_single_list([sug[0] for sug in suggestions])
 
         print()
-        sel = get_selection(0, len(suggestions)) - 1
+        sel = get_selection(0, len(suggestions), []) - 1
 
         data = self.google_photos_client.get_album_info(suggestions[sel][1])
 
@@ -414,8 +462,18 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(1, len(destinations), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                1,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                    MenuNavigationUserCommands.GO_BACK,
+                ],
+            )
+            if sel in [
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ]:
                 cls()
                 return
 
@@ -430,14 +488,22 @@ class TravelCLI(BaseCLI):
             print_double_list(places)
             print()
 
-            sel = get_selection(1, len(places), allowed_chars="/<*")
-            if sel == "/":
+            sel = get_selection(
+                1,
+                len(places),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                    MenuNavigationUserCommands.GO_BACK,
+                    MenuNavigationUserCommands.ALL,
+                ],
+            )
+            if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
                 cls()
                 return
-            elif sel == "<":
+            elif sel == MenuNavigationCodes.GO_BACK:
                 self.add_photos()
                 return
-            elif sel == "*":
+            elif sel == MenuNavigationCodes.ALL:
                 for place in places:
                     self._process_photos(destination, place)
                 return
@@ -533,8 +599,18 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(1, len(destinations), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                1,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                    MenuNavigationUserCommands.GO_BACK,
+                ],
+            )
+            if sel in [
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ]:
                 cls()
                 return
 
@@ -558,8 +634,18 @@ class TravelCLI(BaseCLI):
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
-            sel = get_selection(1, len(destinations), allowed_chars="/<")
-            if sel == "/" or sel == "<":
+            sel = get_selection(
+                1,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                    MenuNavigationUserCommands.GO_BACK,
+                ],
+            )
+            if sel in [
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ]:
                 cls()
                 return
 
@@ -570,12 +656,19 @@ class TravelCLI(BaseCLI):
             places = self._get_places(destination)
             print_double_list(places)
             print()
-            sel = get_selection(1, len(places), allowed_chars="/<")
-            if sel == "/":
+            sel = get_selection(
+                1,
+                len(destinations),
+                allowed_chars=[
+                    MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                    MenuNavigationUserCommands.GO_BACK,
+                ],
+            )
+            if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
                 cls()
                 return
 
-            if sel == "<":
+            if sel == MenuNavigationUserCommands.GO_BACK:
                 self.edit_place()
                 return
 
@@ -597,8 +690,18 @@ class TravelCLI(BaseCLI):
         destinations = self._get_destinations()
         print_double_list(destinations)
         print()
-        sel = get_selection(1, len(destinations), allowed_chars="/<")
-        if sel == "/" or sel == "<":
+        sel = get_selection(
+            1,
+            len(destinations),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
+        if sel in [
+            MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+            MenuNavigationUserCommands.GO_BACK,
+        ]:
             cls()
             return
 
@@ -614,8 +717,18 @@ class TravelCLI(BaseCLI):
         destinations = self._get_destinations()
         print_double_list(destinations)
         print()
-        sel = get_selection(1, len(destinations), allowed_chars="/<")
-        if sel == "/" or sel == "<":
+        sel = get_selection(
+            1,
+            len(destinations),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
+        if sel in [
+            MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+            MenuNavigationUserCommands.GO_BACK,
+        ]:
             cls()
             return
 
@@ -626,12 +739,19 @@ class TravelCLI(BaseCLI):
         print_double_list(places)
         print()
 
-        if sel == "/":
+        if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
             cls()
             return
 
-        sel = get_selection(1, len(places), allowed_chars="/<")
-        if sel == "<":
+        sel = get_selection(
+            1,
+            len(destinations),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
+        if sel == MenuNavigationUserCommands.GO_BACK:
             self.delete_place()
             return
 

@@ -3,6 +3,10 @@ import os
 import readline
 from typing import Any, List
 from pyfiglet import Figlet
+from utils.constants import (
+    MenuNavigationCodes,
+    menuNavigationUserCommandsToCodes,
+)
 
 
 def print_figlet(text: str) -> None:
@@ -28,7 +32,11 @@ def print_double_list(lst: List[Any]) -> None:
             print()
 
 
-def get_selection(minimum: int, maximum: int, allowed_chars: str = "/<*") -> int:
+def get_selection(
+    minimum: int,
+    maximum: int,
+    allowed_chars: List[str],
+) -> int:
     """
     A function for getting a numerical selection from a user. If the selection
     is valid it will be returned, otherwise -1 will be returned
@@ -36,15 +44,18 @@ def get_selection(minimum: int, maximum: int, allowed_chars: str = "/<*") -> int
     selection = input("Selection: ")
 
     if selection in allowed_chars:
-        return selection
+        return menuNavigationUserCommandsToCodes.get(selection, MenuNavigationCodes.INVALID_INPUT)
+
+    if selection in menuNavigationUserCommandsToCodes:
+        return MenuNavigationCodes.FORBIDDEN_INPUT
 
     try:
         selection_as_int = int(selection)
     except ValueError:
-        return -1
+        return MenuNavigationCodes.INVALID_INPUT
 
     if not (minimum <= selection_as_int <= maximum):
-        return -1
+        return MenuNavigationCodes.INPUT_OUT_OF_RANGE
 
     return selection_as_int
 

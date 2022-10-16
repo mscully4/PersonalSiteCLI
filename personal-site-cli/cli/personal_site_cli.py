@@ -49,7 +49,7 @@ class PersonalSiteCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(0, len(self._menu_options))
+            sel = get_selection(0, len(self._menu_options), [])
 
             if sel == 0:
                 self._run = False

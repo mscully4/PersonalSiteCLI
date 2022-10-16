@@ -59,7 +59,7 @@ class ResumeCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._commands), allowed_chars="")
+            sel = get_selection(1, len(self._commands), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
