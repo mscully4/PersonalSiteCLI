@@ -275,7 +275,7 @@ class TravelCLI(BaseCLI):
         inp = get_input("Enter a place name to use the autocomplete functionality.")
 
         suggestions = self.google_maps_client.get_place_suggestions(
-            inp, location=[destination.latitude, destination.longitude]
+            inp, location=(float(destination.latitude), float(destination.longitude))
         )
 
         print()

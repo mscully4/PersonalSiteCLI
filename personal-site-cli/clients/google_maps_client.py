@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Tuple, List
 
 import googlemaps as gm
 from models.google_maps import GeocodedDestination, GeocodedPlace
@@ -18,7 +18,10 @@ class GoogleMapsClient(object):
         return self._gm.places_autocomplete(text, types=[self.CITIES_TYPE])
 
     def get_place_suggestions(
-        self, text: str, location=None, radius: int = DEFAULT_SEARCH_RADIUS_METERS
+        self,
+        text: str,
+        location: Tuple[float, float] = None,
+        radius: int = DEFAULT_SEARCH_RADIUS_METERS,
     ) -> List:
         """
         A method for autocompleting places given a text entry
