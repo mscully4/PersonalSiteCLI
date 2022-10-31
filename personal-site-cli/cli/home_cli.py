@@ -1,4 +1,4 @@
-from typing import Callable, List, Set
+from typing import List, Set
 from .base_cli import BaseCLI
 from attrs import asdict
 from utils.cli_utils import (
@@ -20,6 +20,7 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
+from utils.navigation import MenuAction
 from models.home import Photo
 from PIL import Image
 
@@ -39,8 +40,8 @@ class HomeCLI(BaseCLI):
         self.google_photos_client = google_photos_client
 
         self._run = False
-        self._commands: List[Callable] = [
-            self.update_photos,
+        self._menu_actions: List[MenuAction] = [
+            MenuAction("Update Photos", self.update_photos, is_async=True),
         ]
 
     def _print_menu(self):
@@ -56,9 +57,8 @@ class HomeCLI(BaseCLI):
         print()
 
         print("0. To Exit")
-        for i, command in enumerate(self._commands):
-            pretty_name = command.__name__.replace("_", " ").title()
-            print(f"{i+1}. {pretty_name}")
+        for i, action in enumerate(self._menu_actions):
+            print(f"{i+1}. {action.name}")
 
         print()
 
@@ -70,13 +70,17 @@ class HomeCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._commands), allowed_chars=[])
+            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
                 return
 
-            await self._commands[sel - 1]()
+            action = self._menu_actions[sel - 1]
+            if action.is_async:
+                await action.command()
+            else:
+                action.command()
 
     async def update_photos(self):
         """

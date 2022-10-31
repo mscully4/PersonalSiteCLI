@@ -4,7 +4,7 @@ import readline
 from typing import Any, List
 from attrs import asdict
 from pyfiglet import Figlet
-from utils.constants import (
+from utils.navigation import (
     MenuNavigationCodes,
     menuNavigationUserCommandsToCodes,
 )

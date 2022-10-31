@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, List, Callable
+from typing import Any, Dict, List
 
 from attr import fields_dict
 
@@ -7,6 +7,7 @@ from clients import DDBClient, Namespaces, ResumeEntities, S3Client
 from models.resume import Education, Job, Skill
 from utils.cli_utils import cls, get_input, get_selection, print_figlet
 from utils.constants import APP_NAME
+from utils.navigation import MenuAction
 from utils.photo_processing import IMAGE_TYPE, download_image, hash_buffer_md5, save_image_to_buffer
 
 from .base_cli import BaseCLI
@@ -26,10 +27,10 @@ class ResumeCLI(BaseCLI):
         self.ddb_client = ddb_client
 
         self._run = False
-        self._commands: List[Callable] = [
-            self.add_education,
-            self.add_job,
-            self.add_skill,
+        self._menu_actions: List[MenuAction] = [
+            MenuAction("Add Education", self.add_education),
+            MenuAction("Add Job", self.add_job),
+            MenuAction("Add Skill", self.add_skill),
         ]
 
     def _print_menu(self) -> None:
@@ -45,9 +46,8 @@ class ResumeCLI(BaseCLI):
         print()
 
         print("0. To Exit")
-        for i, command in enumerate(self._commands):
-            pretty_name = command.__name__.replace("_", " ").title()
-            print(f"{i+1}. {pretty_name}")
+        for i, action in enumerate(self._menu_actions):
+            print(f"{i+1}. {action.name}")
 
         print()
 
@@ -59,13 +59,14 @@ class ResumeCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._commands), allowed_chars=[])
+            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
                 return
 
-            self._commands[sel - 1]()
+            action = self._menu_actions[sel - 1]
+            action.command()
 
     def _download_image(self, prompt: str) -> str:
         img = download_image(get_input(prompt))

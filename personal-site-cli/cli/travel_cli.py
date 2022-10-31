@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 from PIL import Image
 
@@ -23,11 +23,8 @@ from utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from utils.constants import (
-    APP_NAME,
-    MenuNavigationCodes,
-    MenuNavigationUserCommands,
-)
+from utils.navigation import MenuNavigationCodes, MenuNavigationUserCommands, MenuAction
+from utils.constants import APP_NAME
 from utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,
@@ -65,15 +62,15 @@ class TravelCLI(BaseCLI):
         self.ddb_client = ddb_client
 
         self._run = False
-        self._commands: List[Tuple[Callable, bool]] = [
-            (self.add_destination, False),
-            (self.add_place, True),
-            (self.add_album, True),
-            (self.add_photos, False),
-            (self.edit_destination, False),
-            (self.edit_place, False),
-            (self.delete_destination, False),
-            (self.delete_place, False),
+        self._menu_actions: List[MenuAction] = [
+            MenuAction("Add Destination", self.add_destination),
+            MenuAction("Add Place", self.add_place, is_async=True),
+            MenuAction("Add Album", self.add_album, is_async=True),
+            MenuAction("Add Photos", self.add_photos),
+            MenuAction("Edit Destination", self.edit_destination),
+            MenuAction("Edit Place", self.edit_place),
+            MenuAction("Delete Destination", self.delete_destination),
+            MenuAction("Delete Place", self.delete_place),
         ]
 
     def _print_menu(self) -> None:
@@ -89,9 +86,8 @@ class TravelCLI(BaseCLI):
         print()
 
         print("0. To Exit")
-        for i, command in enumerate(self._commands):
-            pretty_name = command[0].__name__.replace("_", " ").title()
-            print(f"{i+1}. {pretty_name}")
+        for i, action in enumerate(self._menu_actions):
+            print(f"{i+1}. {action.name}")
 
         print()
 
@@ -103,16 +99,17 @@ class TravelCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._commands), allowed_chars=[])
+            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
                 return
 
-            if self._commands[sel - 1][1]:
-                await self._commands[sel - 1][0]()
+            action = self._menu_actions[sel - 1]
+            if action.is_async:
+                await action.command()
             else:
-                self._commands[sel - 1][0]()
+                action.command()
 
     def _get_destinations(self) -> List[Destination]:
         """
