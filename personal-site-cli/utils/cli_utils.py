@@ -2,6 +2,7 @@ import math
 import os
 import readline
 from typing import Any, List
+from attrs import asdict
 from pyfiglet import Figlet
 from utils.constants import (
     MenuNavigationCodes,
@@ -82,7 +83,7 @@ def edit_obj(obj: Any) -> Any:
     """
     Edits the information of a destination in the dictionary
     """
-    items = obj.asdict()
+    items = asdict(obj)
     for k, v in items.items():
         inp = rlinput("{}: ".format(k), str(v))
 
