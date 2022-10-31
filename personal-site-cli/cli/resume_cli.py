@@ -1,5 +1,5 @@
 import uuid
-from typing import Any, Dict, List, Tuple, Callable
+from typing import Any, Dict, List, Callable
 
 from attr import fields_dict
 
