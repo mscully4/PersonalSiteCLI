@@ -10,6 +10,7 @@ from exceptions import DynamoDBException
 class Namespaces:
     TRAVEL = "TRAVEL"
     RESUME = "RESUME"
+    HOME = "HOME"
 
 
 class TravelEntities:
@@ -23,6 +24,10 @@ class ResumeEntities:
     JOB = "JOB"
     EDUCATION = "EDUCATION"
     SKILL = "SKILL"
+
+
+class HomeEntities:
+    PHOTO = "PHOTO"
 
 
 class DDBClient:

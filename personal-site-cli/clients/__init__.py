@@ -3,6 +3,7 @@ from .ddb_client import (  # noqa F401
     Namespaces,
     TravelEntities,
     ResumeEntities,
+    HomeEntities,
 )
 from .s3_client import S3Client  # noqa F401
 from .google_photos_client import GooglePhotosClient  # noqa F401

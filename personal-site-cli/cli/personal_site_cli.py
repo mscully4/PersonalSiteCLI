@@ -5,6 +5,7 @@ from utils.constants import APP_NAME
 from .base_cli import BaseCLI
 from .resume_cli import ResumeCLI
 from .travel_cli import TravelCLI
+from .home_cli import HomeCLI
 
 
 class PersonalSiteCLI(BaseCLI):
@@ -20,11 +21,12 @@ class PersonalSiteCLI(BaseCLI):
         self.s3 = s3_client
         self.dynamo = ddb_client
 
-        self._menu_options = ["Travel", "Resume"]
+        self._menu_options = ["Travel", "Resume", "Home"]
         self._travel_cli = TravelCLI(
             google_maps_client, google_photos_client, s3_client, ddb_client
         )
         self._resume_cli = ResumeCLI(s3_client, ddb_client)
+        self._home_cli = HomeCLI(google_photos_client, s3_client, ddb_client)
 
         self._run = False
 
@@ -59,3 +61,5 @@ class PersonalSiteCLI(BaseCLI):
                 await self._travel_cli.run()
             elif sel == 2:
                 await self._resume_cli.run()
+            elif sel == 3:
+                await self._home_cli.run()
