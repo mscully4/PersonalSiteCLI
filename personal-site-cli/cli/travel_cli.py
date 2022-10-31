@@ -117,9 +117,6 @@ class TravelCLI(BaseCLI):
     def _get_destinations(self) -> List[Destination]:
         """
         A method for retrieving all Destinations
-
-        Returns:
-            destinations: A list of Destination objects
         """
         query_result = self.ddb_client.get_equals(self.DESTINATION_PK)
         destinations: List[Destination] = [Destination(**obj) for obj in query_result]
@@ -128,12 +125,6 @@ class TravelCLI(BaseCLI):
     def _get_places(self, destination: Destination) -> List[Place]:
         """
         A method for retrieving all Places for a Destination
-
-        Arguments:
-            destination (Destination): The Destination to retrieve places for
-
-        Returns:
-            places: A list of Place objects
         """
         query_result = self.ddb_client.get_begins_with(self.PLACE_PK, destination.place_id)
         places: List[Place] = [Place(**obj) for obj in query_result]
@@ -142,12 +133,6 @@ class TravelCLI(BaseCLI):
     def _get_album(self, place: Place) -> Album:
         """
         A method for retrieving the album of a place
-
-        Arguments:
-            place (Place): The Place to retrieve albums for
-
-        Returns:
-            albums: An Album object
         """
         query_result = self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
         if len(query_result) > 1:
@@ -240,9 +225,6 @@ class TravelCLI(BaseCLI):
     async def add_place(self, destination: Optional[Destination] = None) -> None:
         """
         A method for creating a new Place object
-
-        Arguments:
-            destination (Destination): The Destination to add the Place to.  If None, user is prompted to select Destination
         """
         assert destination is None or isinstance(destination, Destination)
 
@@ -347,10 +329,6 @@ class TravelCLI(BaseCLI):
     async def add_album(self, destination=None, place=None) -> None:
         """
         A method for creating a new Album object
-
-        Arguments:
-            destination (Destination): The Destination the Album will fall under.  If None, user is prompted to select Destination
-            place (Place): The Place to add the Album to.  If None, user is prompted to select Destination.
         """
 
         print_figlet(APP_NAME)
@@ -598,9 +576,6 @@ class TravelCLI(BaseCLI):
     def edit_destination(self, destination: Destination = None) -> None:
         """
         A method for editing a Destination
-
-        Arguments:
-            destination (Destination): The Destination to edit
         """
         print_figlet(APP_NAME)
         if destination is None:
@@ -632,10 +607,6 @@ class TravelCLI(BaseCLI):
     def edit_place(self, destination: Destination = None, place: Place = None) -> None:
         """
         A method for editing a Place
-
-        Arguments:
-            destination (Destination): The Destination the Place belongs to. If None, the user will be prompted to select one
-            place (Place): The Place to edit. If None, the user will be prompted to select one
         """
         print_figlet(APP_NAME)
         if destination is None:

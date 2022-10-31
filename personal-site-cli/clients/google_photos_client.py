@@ -46,9 +46,6 @@ class GooglePhotosClient(object):
     async def get_albums(self) -> List:
         """
         A method for retrieving all the Google Photos albums for a user
-
-        Returns:
-            <list>: A list of albums
         """
         a = []
 
@@ -78,24 +75,12 @@ class GooglePhotosClient(object):
     def get_album_info(self, album_id) -> Dict:
         """
         A method for retrieving album metadata given an album id
-
-        Arguments:
-            album_id <str>: An album's unique identifier
-
-        Returns:
-            <dict>: A dictionary of album metadata
         """
         return self.service.albums().get(albumId=album_id).execute()
 
     def get_album_photos(self, album_id) -> List:
         """
         A method for retrieivng urls for all the photos in an album
-
-        Arguments:
-            album_id <str>: An album's unique identifier
-
-        Returns:
-            photos <list>: A list of objects
         """
         photos = []
 
