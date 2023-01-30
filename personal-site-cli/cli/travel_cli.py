@@ -213,7 +213,7 @@ class TravelCLI(BaseCLI):
 
         # If a record already exists for the Destination, ensure the user wants to continue
         if record and not ask_yes_no_question(
-            f"A record already exists for destination: {destination.place_id}, continue?"
+            f"A record already exists for destination: {destination.place_id}, continue?: "
         ):
             return
 
@@ -497,6 +497,12 @@ class TravelCLI(BaseCLI):
 
         self._process_photos(destination, place)
 
+        print_figlet(APP_NAME)
+        if ask_yes_no_question(
+            "Would you like to add photos to another place in this destination? (y/n): "
+        ):
+            self.add_photos(destination=destination)
+
     def _get_existing_photos(self, place: Place) -> Set[str]:
         existing = self.ddb_client.get_begins_with(self.PHOTO_PK, place.place_id)
         return set([image["hsh"] for image in existing])
@@ -608,7 +614,7 @@ class TravelCLI(BaseCLI):
         A method for editing a Place
         """
         print_figlet(APP_NAME)
-        if destination is None:
+        if not destination:
             destinations = self._get_destinations()
             print_double_list(destinations)
             print()
@@ -718,10 +724,6 @@ class TravelCLI(BaseCLI):
         places = self._get_places(destination)
         print_double_list(places)
         print()
-
-        if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
-            cls()
-            return
 
         sel = get_selection(
             1,
