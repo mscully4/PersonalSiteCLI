@@ -281,11 +281,11 @@ class TravelCLI(BaseCLI):
                 MenuNavigationUserCommands.GO_BACK,
             ],
         )
-        if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
+        if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
             cls()
             return
 
-        elif sel == MenuNavigationUserCommands.GO_BACK:
+        elif sel == MenuNavigationCodes.GO_BACK:
             await self.add_place(destination=destination)
             return
 
@@ -345,8 +345,8 @@ class TravelCLI(BaseCLI):
                 ],
             )
             if sel in [
-                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-                MenuNavigationUserCommands.GO_BACK,
+                MenuNavigationCodes.GO_TO_MAIN_MENU,
+                MenuNavigationCodes.GO_BACK,
             ]:
                 cls()
                 return
@@ -367,8 +367,8 @@ class TravelCLI(BaseCLI):
                 ],
             )
             if sel in [
-                MenuNavigationUserCommands.GO_BACK,
-                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationCodes.GO_BACK,
+                MenuNavigationCodes.GO_TO_MAIN_MENU,
             ]:
                 cls()
                 return
@@ -456,8 +456,8 @@ class TravelCLI(BaseCLI):
                 ],
             )
             if sel in [
-                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-                MenuNavigationUserCommands.GO_BACK,
+                MenuNavigationCodes.GO_TO_MAIN_MENU,
+                MenuNavigationCodes.GO_BACK,
             ]:
                 cls()
                 return
@@ -590,8 +590,8 @@ class TravelCLI(BaseCLI):
                 ],
             )
             if sel in [
-                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-                MenuNavigationUserCommands.GO_BACK,
+                MenuNavigationCodes.GO_TO_MAIN_MENU,
+                MenuNavigationCodes.GO_BACK,
             ]:
                 cls()
                 return
@@ -620,9 +620,10 @@ class TravelCLI(BaseCLI):
                     MenuNavigationUserCommands.GO_BACK,
                 ],
             )
+            print(sel)
             if sel in [
-                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-                MenuNavigationUserCommands.GO_BACK,
+                MenuNavigationCodes.GO_TO_MAIN_MENU,
+                MenuNavigationCodes.GO_BACK,
             ]:
                 cls()
                 return
@@ -642,11 +643,12 @@ class TravelCLI(BaseCLI):
                     MenuNavigationUserCommands.GO_BACK,
                 ],
             )
-            if sel == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
+
+            if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
                 cls()
                 return
 
-            if sel == MenuNavigationUserCommands.GO_BACK:
+            if sel == MenuNavigationCodes.GO_BACK:
                 self.edit_place()
                 return
 
@@ -677,8 +679,8 @@ class TravelCLI(BaseCLI):
             ],
         )
         if sel in [
-            MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-            MenuNavigationUserCommands.GO_BACK,
+            MenuNavigationCodes.GO_TO_MAIN_MENU,
+            MenuNavigationCodes.GO_BACK,
         ]:
             cls()
             return
@@ -704,8 +706,8 @@ class TravelCLI(BaseCLI):
             ],
         )
         if sel in [
-            MenuNavigationUserCommands.GO_TO_MAIN_MENU,
-            MenuNavigationUserCommands.GO_BACK,
+            MenuNavigationCodes.GO_TO_MAIN_MENU,
+            MenuNavigationCodes.GO_BACK,
         ]:
             cls()
             return
@@ -729,7 +731,10 @@ class TravelCLI(BaseCLI):
                 MenuNavigationUserCommands.GO_BACK,
             ],
         )
-        if sel == MenuNavigationUserCommands.GO_BACK:
+        if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
+            cls()
+            return
+        if sel == MenuNavigationCodes.GO_BACK:
             self.delete_place()
             return
 
