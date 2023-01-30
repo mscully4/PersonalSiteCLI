@@ -117,6 +117,7 @@ class TravelCLI(BaseCLI):
         """
         query_result = self.ddb_client.get_equals(self.DESTINATION_PK)
         destinations: List[Destination] = [Destination(**obj) for obj in query_result]
+        destinations.sort(key=lambda x: [x.country_code, x.name])
         return destinations
 
     def _get_places(self, destination: Destination) -> List[Place]:
@@ -125,6 +126,7 @@ class TravelCLI(BaseCLI):
         """
         query_result = self.ddb_client.get_begins_with(self.PLACE_PK, destination.place_id)
         places: List[Place] = [Place(**obj) for obj in query_result]
+        places.sort(key=lambda x: x.name)
         return places
 
     def _get_album(self, place: Place) -> Album:
