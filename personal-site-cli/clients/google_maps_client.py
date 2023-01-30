@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import List, Tuple
 
 import googlemaps as gm
 from models.google_maps import GeocodedDestination, GeocodedPlace

@@ -1,7 +1,5 @@
 from typing import List, Optional, Set, Tuple
 
-from PIL import Image
-
 from clients import (
     DDBClient,
     GoogleMapsClient,
@@ -10,8 +8,10 @@ from clients import (
     S3Client,
     TravelEntities,
 )
-from models.travel import Album, Destination, Photo, Place
+from exceptions import InvalidStateException
 from models.google_maps import GeocodedDestination, GeocodedPlace
+from models.travel import Album, Destination, Photo, Place
+from PIL import Image
 from utils.cli_utils import (
     ask_yes_no_question,
     clr_line,
@@ -23,8 +23,8 @@ from utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from utils.navigation import MenuNavigationCodes, MenuNavigationUserCommands, MenuAction
 from utils.constants import APP_NAME
+from utils.navigation import MenuAction, MenuNavigationCodes, MenuNavigationUserCommands
 from utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,
@@ -34,7 +34,7 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from exceptions import InvalidStateException
+
 from .base_cli import BaseCLI
 
 

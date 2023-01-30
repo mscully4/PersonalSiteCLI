@@ -1,5 +1,4 @@
 from io import BytesIO
-from xmlrpc.client import boolean
 
 import botocore
 from boto3 import Session
@@ -34,7 +33,7 @@ class S3Client:
         assert resp["ResponseMetadata"]["HTTPStatusCode"], "Image Upload Failed"
         return f"{self.base_url}/{file_name}"
 
-    def does_image_exist(self, file_name: str) -> boolean:
+    def does_image_exist(self, file_name: str) -> bool:
         try:
             self._s3_resource.Object(self.bucket_name, file_name).load()
         except botocore.exceptions.ClientError as e:

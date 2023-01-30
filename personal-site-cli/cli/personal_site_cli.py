@@ -3,9 +3,9 @@ from utils.cli_utils import cls, get_selection, print_figlet
 from utils.constants import APP_NAME
 
 from .base_cli import BaseCLI
+from .home_cli import HomeCLI
 from .resume_cli import ResumeCLI
 from .travel_cli import TravelCLI
-from .home_cli import HomeCLI
 
 
 class PersonalSiteCLI(BaseCLI):
