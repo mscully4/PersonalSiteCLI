@@ -34,6 +34,9 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
+from utils.threading import split, THREADS
+
+from threading import Thread
 
 from .base_cli import BaseCLI
 
@@ -99,7 +102,7 @@ class TravelCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
+            sel = get_selection(0, len(self._menu_actions), allowed_chars=[])
 
             if sel == 0:
                 self._run = False
@@ -513,15 +516,28 @@ class TravelCLI(BaseCLI):
         photos = self.google_photos_client.get_album_photos(album.album_id)
 
         existing = self._get_existing_photos(place)
+        chunks = split(photos, THREADS)
 
-        print(f"Destination: {destination.name}, Place: {place.name}")
-        for i, obj in enumerate(photos):
-            print(f"Uploading Photo: {i + 1} out of {len(photos)}")
-            img: Image.Image = download_image(obj["baseUrl"] + "=d")
+        progress = {}
+        threads = []
+        for i, chunk in enumerate(chunks):
+            thread = Thread(
+                target=self._process_photo, args=(chunk, destination, place, existing, i, progress)
+            )
+            threads.append(thread)
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+    def _process_photo(self, chunk, destination, place, existing, thread_no, progress):
+        for i, obj in enumerate(chunk):
+            img: Image.Image = download_image(
+                obj["baseUrl"] + "=d"
+            )  # The =d is needed to download the photo
             photo_src, hsh, width, height = self._upload_photo_to_s3(img, destination, place)
 
             if hsh in existing:
-                clr_line()
                 continue
 
             thumbnail_src = self._upload_thumbnail_to_s3(img, destination, place)
@@ -541,7 +557,14 @@ class TravelCLI(BaseCLI):
                 self.PHOTO_SK_FS.format(place_id=place.place_id, photo_id=photo.photo_id),
                 photo.asdict(),
             )
-            clr_line()
+            progress[thread_no] = 100 * ((i + 1) / len(chunk))
+
+            self._print_photo_progress(progress)
+
+    def _print_photo_progress(self, progress):
+        print_figlet(APP_NAME)
+        print(f"Downloading photos using {THREADS} threads, see progress below...")
+        print(" ".join([f"{k}: {v:.2f}%" for k, v in sorted(progress.items())]))
 
     def _upload_photo_to_s3(
         self, img: Image.Image, destination: Destination, place: Place
