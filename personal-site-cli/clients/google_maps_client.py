@@ -45,7 +45,7 @@ class GoogleMapsClient(object):
             country=country,
             country_code=country_code,
             latitude=geo_data["geometry"]["location"]["lat"],
-            longitude=geo_data["geometry"]["location"]["lat"],
+            longitude=geo_data["geometry"]["location"]["long"],
         )
 
     def geocode_place(self, place_id: str) -> GeocodedPlace:
