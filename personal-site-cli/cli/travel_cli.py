@@ -404,6 +404,13 @@ class TravelCLI(BaseCLI):
         print()
         sel = get_selection(0, len(suggestions), []) - 1
 
+        if sel in [
+            MenuNavigationCodes.GO_TO_MAIN_MENU,
+            MenuNavigationCodes.GO_BACK,
+        ]:
+            self.add_album(destination, place)
+            return
+
         data = self.google_photos_client.get_album_info(suggestions[sel][1])
 
         album = Album(

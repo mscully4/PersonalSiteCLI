@@ -1,6 +1,6 @@
 import numpy as np
 
-THREADS = 8
+THREADS = 16
 
 
 def split(lst, n):
