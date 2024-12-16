@@ -1,6 +1,6 @@
 from typing import List, Optional, Set, Tuple
 
-from clients import (
+from personal_site_cli.clients import (
     DDBClient,
     GoogleMapsClient,
     GooglePhotosClient,
@@ -8,11 +8,11 @@ from clients import (
     S3Client,
     TravelEntities,
 )
-from exceptions import InvalidStateException
-from models.google_maps import GeocodedDestination, GeocodedPlace
-from models.travel import Album, Destination, Photo, Place
+from personal_site_cli.exceptions import InvalidStateException
+from personal_site_cli.models.google_maps import GeocodedDestination, GeocodedPlace
+from personal_site_cli.models.travel import Album, Destination, Photo, Place
 from PIL import Image
-from utils.cli_utils import (
+from personal_site_cli.utils.cli_utils import (
     ask_yes_no_question,
     clr_line,
     cls,
@@ -23,9 +23,9 @@ from utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from utils.constants import APP_NAME
-from utils.navigation import MenuAction, MenuNavigationCodes, MenuNavigationUserCommands
-from utils.photo_processing import (
+from personal_site_cli.utils.constants import APP_NAME
+from personal_site_cli.utils.navigation import MenuAction, MenuNavigationCodes, MenuNavigationUserCommands
+from personal_site_cli.utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,
     THUMBNAIL_MAX_SIZE,
@@ -34,7 +34,7 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from utils.threading import split, THREADS
+from personal_site_cli.utils.threading import split, THREADS
 
 from threading import Thread
 

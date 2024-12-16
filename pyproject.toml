@@ -9,3 +9,40 @@ profile = "black"
 
 # To maintain consistency with other settings
 line_length = 100
+[tool.poetry]
+name = "personal_site_cli"
+version = "0.1.0"
+description = ""
+authors = ["Mike <michael.scully1997@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+cli = "personal_site_cli.main:main"
+cl = "personal_site_cli.click_example:main"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+boto3 = "^1.35.81"
+click = "^8.1.7"
+pyyaml = "^6.0.2"
+types-pyyaml = "^6.0.12.20240917"
+attr = "^0.3.2"
+mypy-boto3 = {extras = ["ddb"], version = "^1.35.70"}
+mypy-boto3-dynamodb = "^1.35.74"
+mypy-boto3-s3 = "^1.35.76.post1"
+fuzzywuzzy = "^0.18.0"
+google = "^3.0.0"
+google-auth = "^2.37.0"
+requests = "^2.32.3"
+google-auth-oauthlib = "^1.2.1"
+google-api-python-client = "^2.155.0"
+googlemaps = "^4.10.0"
+attrs = "^24.2.0"
+pyfiglet = "^1.0.2"
+pillow = "^11.0.0"
+numpy = "^2.2.0"
+python-levenshtein = "^0.26.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,6 +1,6 @@
-from clients import DDBClient, GoogleMapsClient, GooglePhotosClient, S3Client
-from utils.cli_utils import cls, get_selection, print_figlet
-from utils.constants import APP_NAME
+from personal_site_cli.clients import DDBClient, GoogleMapsClient, GooglePhotosClient, S3Client
+from personal_site_cli.utils.cli_utils import cls, get_selection, print_figlet
+from personal_site_cli.utils.constants import APP_NAME
 
 from .base_cli import BaseCLI
 from .home_cli import HomeCLI

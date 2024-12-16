@@ -1,7 +1,7 @@
 from typing import List, Set
 from .base_cli import BaseCLI
 from attrs import asdict
-from utils.cli_utils import (
+from personal_site_cli.utils.cli_utils import (
     clr_line,
     cls,
     get_input,
@@ -9,19 +9,19 @@ from utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from utils.constants import (
+from personal_site_cli.utils.constants import (
     APP_NAME,
 )
-from clients import DDBClient, GooglePhotosClient, S3Client, Namespaces, HomeEntities
-from utils.photo_processing import (
+from personal_site_cli.clients import DDBClient, GooglePhotosClient, S3Client, Namespaces, HomeEntities
+from personal_site_cli.utils.photo_processing import (
     IMAGE_TYPE,
     download_image,
     hash_buffer_md5,
     rescale_image,
     save_image_to_buffer,
 )
-from utils.navigation import MenuAction
-from models.home import Photo
+from personal_site_cli.utils.navigation import MenuAction
+from personal_site_cli.models.home import Photo
 from PIL import Image
 
 

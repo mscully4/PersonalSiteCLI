@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 import googlemaps as gm
-from models.google_maps import GeocodedDestination, GeocodedPlace
+from personal_site_cli.models.google_maps import GeocodedDestination, GeocodedPlace
 
 
 class GoogleMapsClient(object):

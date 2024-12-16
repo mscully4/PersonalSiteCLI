@@ -3,12 +3,12 @@ from typing import Any, Dict, List
 
 from attr import fields_dict
 
-from clients import DDBClient, Namespaces, ResumeEntities, S3Client
-from models.resume import Education, Job, Skill
-from utils.cli_utils import cls, get_input, get_selection, print_figlet
-from utils.constants import APP_NAME
-from utils.navigation import MenuAction
-from utils.photo_processing import IMAGE_TYPE, download_image, hash_buffer_md5, save_image_to_buffer
+from personal_site_cli.clients import DDBClient, Namespaces, ResumeEntities, S3Client
+from personal_site_cli.models.resume import Education, Job, Skill
+from personal_site_cli.utils.cli_utils import cls, get_input, get_selection, print_figlet
+from personal_site_cli.utils.constants import APP_NAME
+from personal_site_cli.utils.navigation import MenuAction
+from personal_site_cli.utils.photo_processing import IMAGE_TYPE, download_image, hash_buffer_md5, save_image_to_buffer
 
 from .base_cli import BaseCLI
 

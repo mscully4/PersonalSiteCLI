@@ -1,0 +1,5 @@
+config.yaml
+venv
+*.pyc
+*.pickle
+config.yaml
