@@ -1,4 +1,5 @@
 from typing import Callable
+
 from attr import field, frozen
 
 
@@ -24,7 +25,7 @@ class MenuNavigationUserCommands:
     ALL = "*"
 
 
-menuNavigationUserCommandsToCodes = {
+menu_navigation_user_commands_to_codes = {
     MenuNavigationUserCommands.GO_BACK: MenuNavigationCodes.GO_BACK,
     MenuNavigationUserCommands.GO_TO_MAIN_MENU: MenuNavigationCodes.GO_TO_MAIN_MENU,
     MenuNavigationUserCommands.ALL: MenuNavigationCodes.ALL,

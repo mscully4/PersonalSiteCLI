@@ -2,9 +2,10 @@ from typing import Any, Dict, List
 
 from boto3 import Session
 from boto3.dynamodb.conditions import ConditionBase, Key
-from personal_site_cli.exceptions import DynamoDBException
 from mypy_boto3_dynamodb.service_resource import Table
 from mypy_boto3_dynamodb.type_defs import PutItemOutputTableTypeDef, QueryOutputTableTypeDef
+
+from personal_site_cli.exceptions import DynamoDBException
 
 
 class Namespaces:

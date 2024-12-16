@@ -1,8 +1,10 @@
 import uuid
 from typing import Any, Dict, List
 
+import click
 from attr import fields_dict
 
+from personal_site_cli.cli.base_cli import BaseCLI
 from personal_site_cli.clients import DDBClient, Namespaces, ResumeEntities, S3Client
 from personal_site_cli.models.resume import Education, Job, Skill
 from personal_site_cli.utils.cli_utils import cls, get_input, get_selection, print_figlet
@@ -14,8 +16,6 @@ from personal_site_cli.utils.photo_processing import (
     hash_buffer_md5,
     save_image_to_buffer,
 )
-
-from .base_cli import BaseCLI
 
 
 class ResumeCLI(BaseCLI):
@@ -46,15 +46,15 @@ class ResumeCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Travel Menu")
+        click.echo("Travel Menu")
 
-        print()
+        click.echo()
 
-        print("0. To Exit")
+        click.echo("0. To Exit")
         for i, action in enumerate(self._menu_actions):
-            print(f"{i+1}. {action.name}")
+            click.echo(f"{i+1}. {action.name}")
 
-        print()
+        click.echo()
 
     async def run(self) -> None:
         """

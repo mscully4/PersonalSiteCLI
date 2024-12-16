@@ -1,8 +1,10 @@
+import json
 import os
 from pathlib import Path
-from personal_site_cli.models.auth import Config
+
 from cattrs import structure
-import json
+
+from personal_site_cli.models.auth import Config
 
 
 def get_config() -> Config:

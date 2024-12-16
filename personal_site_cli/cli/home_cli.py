@@ -1,6 +1,18 @@
 from typing import List, Set
-from .base_cli import BaseCLI
+
+import click
 from attrs import asdict
+from PIL import Image
+
+from personal_site_cli.cli.base_cli import BaseCLI
+from personal_site_cli.clients import (
+    DDBClient,
+    GooglePhotosClient,
+    HomeEntities,
+    Namespaces,
+    S3Client,
+)
+from personal_site_cli.models.home import Photo
 from personal_site_cli.utils.cli_utils import (
     clr_line,
     cls,
@@ -9,16 +21,8 @@ from personal_site_cli.utils.cli_utils import (
     print_figlet,
     print_single_list,
 )
-from personal_site_cli.utils.constants import (
-    APP_NAME,
-)
-from personal_site_cli.clients import (
-    DDBClient,
-    GooglePhotosClient,
-    S3Client,
-    Namespaces,
-    HomeEntities,
-)
+from personal_site_cli.utils.constants import APP_NAME
+from personal_site_cli.utils.navigation import MenuAction
 from personal_site_cli.utils.photo_processing import (
     IMAGE_TYPE,
     download_image,
@@ -26,9 +30,6 @@ from personal_site_cli.utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from personal_site_cli.utils.navigation import MenuAction
-from personal_site_cli.models.home import Photo
-from PIL import Image
 
 
 class HomeCLI(BaseCLI):
@@ -58,15 +59,15 @@ class HomeCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Travel Menu")
+        click.echo("Travel Menu")
 
-        print()
+        click.echo()
 
-        print("0. To Exit")
+        click.echo("0. To Exit")
         for i, action in enumerate(self._menu_actions):
-            print(f"{i+1}. {action.name}")
+            click.echo(f"{i+1}. {action.name}")
 
-        print()
+        click.echo()
 
     async def run(self) -> None:
         """
@@ -102,7 +103,7 @@ class HomeCLI(BaseCLI):
         if not self.google_photos_client.done:
             await self.google_photos_client.albums
 
-        print()
+        click.echo()
 
         # Fuzzy match input against existing Google Photos albums
         suggestions = self.google_photos_client.get_album_suggestions(
@@ -111,7 +112,7 @@ class HomeCLI(BaseCLI):
 
         print_single_list([sug[0] for sug in suggestions])
 
-        print()
+        click.echo()
         sel = get_selection(0, len(suggestions), []) - 1
 
         data = self.google_photos_client.get_album_info(suggestions[sel][1])
@@ -135,7 +136,7 @@ class HomeCLI(BaseCLI):
         existing = self._get_existing_photos()
 
         for i, obj in enumerate(photos):
-            print(f"Uploading Photo: {i + 1} out of {len(photos)}")
+            click.echo(f"Uploading Photo: {i + 1} out of {len(photos)}")
             img: Image.Image = download_image(obj["baseUrl"] + "=d")
             img = rescale_image(img, self.MAX_PHOTO_SIZE)
             buffer = save_image_to_buffer(img)

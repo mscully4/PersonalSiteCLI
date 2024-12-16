@@ -1,11 +1,12 @@
+import click
+
+from personal_site_cli.cli.base_cli import BaseCLI
+from personal_site_cli.cli.home_cli import HomeCLI
+from personal_site_cli.cli.resume_cli import ResumeCLI
+from personal_site_cli.cli.travel_cli import TravelCLI
 from personal_site_cli.clients import DDBClient, GoogleMapsClient, GooglePhotosClient, S3Client
 from personal_site_cli.utils.cli_utils import cls, get_selection, print_figlet
 from personal_site_cli.utils.constants import APP_NAME
-
-from .base_cli import BaseCLI
-from .home_cli import HomeCLI
-from .resume_cli import ResumeCLI
-from .travel_cli import TravelCLI
 
 
 class PersonalSiteCLI(BaseCLI):
@@ -34,13 +35,13 @@ class PersonalSiteCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Main Menu")
+        click.echo("Main Menu")
 
-        print("0. To Exit")
+        click.echo("0. To Exit")
         for i, o in enumerate(self._menu_options):
-            print(f"{i+1}. {o}")
+            click.echo(f"{i+1}. {o}")
 
-        print()
+        click.echo()
 
     async def run(self) -> None:
         """

@@ -1,7 +1,6 @@
 #! /usr/bin/env python3
 
 import asyncio
-import os
 
 import boto3
 
@@ -41,7 +40,3 @@ def main() -> None:
 
 async def run(cli: PersonalSiteCLI) -> None:
     await cli.run()
-
-
-if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())

@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 import googlemaps as gm
+
 from personal_site_cli.models.google_maps import GeocodedDestination, GeocodedPlace
 
 

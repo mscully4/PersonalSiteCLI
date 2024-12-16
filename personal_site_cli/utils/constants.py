@@ -1,1 +1,1 @@
-APP_NAME = "Personal Site CLI"
+APP_NAME = "PersonalSiteCLI"

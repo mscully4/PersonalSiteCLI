@@ -1,5 +1,10 @@
+from threading import Thread
 from typing import List, Optional, Set, Tuple
 
+import click
+from PIL import Image
+
+from personal_site_cli.cli.base_cli import BaseCLI
 from personal_site_cli.clients import (
     DDBClient,
     GoogleMapsClient,
@@ -11,10 +16,8 @@ from personal_site_cli.clients import (
 from personal_site_cli.exceptions import InvalidStateException
 from personal_site_cli.models.google_maps import GeocodedDestination, GeocodedPlace
 from personal_site_cli.models.travel import Album, Destination, Photo, Place
-from PIL import Image
 from personal_site_cli.utils.cli_utils import (
     ask_yes_no_question,
-    clr_line,
     cls,
     edit_obj,
     get_input,
@@ -38,11 +41,7 @@ from personal_site_cli.utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from personal_site_cli.utils.threading import split, THREADS
-
-from threading import Thread
-
-from .base_cli import BaseCLI
+from personal_site_cli.utils.threading import THREADS, split
 
 
 class TravelCLI(BaseCLI):
@@ -88,15 +87,15 @@ class TravelCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Travel Menu")
+        click.echo("Travel Menu")
 
-        print()
+        click.echo()
 
-        print("0. To Exit")
+        click.echo("0. To Exit")
         for i, action in enumerate(self._menu_actions):
-            print(f"{i+1}. {action.name}")
+            click.echo(f"{i+1}. {action.name}")
 
-        print()
+        click.echo()
 
     async def run(self) -> None:
         """
@@ -169,8 +168,8 @@ class TravelCLI(BaseCLI):
         if suggestions:
             print_figlet(APP_NAME)
             print_single_list([suggestion["description"] for suggestion in suggestions])
-            print(f"{len(suggestions) + 1}. Enter Google Place ID Manually")
-            print()
+            click.echo(f"{len(suggestions) + 1}. Enter Google Place ID Manually")
+            click.echo()
             sel = (
                 get_selection(
                     0,
@@ -195,10 +194,10 @@ class TravelCLI(BaseCLI):
         if not suggestions or sel == len(suggestions):
             print_figlet(APP_NAME)
 
-            print(
+            click.echo(
                 "Enter in the Place ID below (https://developers.google.com/maps/documentation/javascript/place-id)"
             )
-            print()
+            click.echo()
 
             id_ = input("Place ID: ")
             if id_ == MenuNavigationCodes.GO_TO_MAIN_MENU:
@@ -241,7 +240,7 @@ class TravelCLI(BaseCLI):
         if destination is None:
             destinations = self._get_destinations()
             print_double_list(destinations)
-            print()
+            click.echo()
             sel = get_selection(
                 0,
                 len(destinations),
@@ -257,8 +256,8 @@ class TravelCLI(BaseCLI):
             print_figlet(APP_NAME)
             destination = destinations[sel - 1]
 
-        print("Selected Destination: {}".format(destination.name))
-        print()
+        click.echo("Selected Destination: {}".format(destination.name))
+        click.echo()
 
         inp = get_input("Enter a place name to use the autocomplete functionality.")
 
@@ -266,14 +265,14 @@ class TravelCLI(BaseCLI):
             inp, location=(float(destination.latitude), float(destination.longitude))
         )
 
-        print()
+        click.echo()
         print_single_list(
             [
                 f"{sug['structured_formatting'].get('main_text', '')} {sug['structured_formatting'].get('secondary_text', '')}"
                 for sug in suggestions
             ]
         )
-        print()
+        click.echo()
 
         # The list of destinations might have already been retrieved (if no destination was specified as an argument), so
         # check
@@ -342,7 +341,7 @@ class TravelCLI(BaseCLI):
         if not destination:
             destinations = self._get_destinations()
             print_double_list(destinations)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(destinations),
@@ -364,7 +363,7 @@ class TravelCLI(BaseCLI):
         if not place:
             places = self._get_places(destination)
             print_double_list(places)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(places),
@@ -385,7 +384,7 @@ class TravelCLI(BaseCLI):
 
         print_figlet(APP_NAME)
         if existing_albums := self._get_existing_albums(place):
-            print(f"An Album(s) already exists for this place: {existing_albums}")
+            click.echo(f"An Album(s) already exists for this place: {existing_albums}")
 
         inp = get_input(
             "Enter the album name to use the autocomplete functionality.",
@@ -396,7 +395,7 @@ class TravelCLI(BaseCLI):
         if not self.google_photos_client.done:
             await self.google_photos_client.albums
 
-        print()
+        click.echo()
 
         # Fuzzy match input against existing Google Photos albums
         suggestions = self.google_photos_client.get_album_suggestions(
@@ -405,7 +404,7 @@ class TravelCLI(BaseCLI):
 
         print_single_list([sug[0] for sug in suggestions])
 
-        print()
+        click.echo()
         sel = get_selection(0, len(suggestions), []) - 1
 
         if sel in [
@@ -460,7 +459,7 @@ class TravelCLI(BaseCLI):
         if destination is None:
             destinations = self._get_destinations()
             print_double_list(destinations)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(destinations),
@@ -479,13 +478,13 @@ class TravelCLI(BaseCLI):
             print_figlet(APP_NAME)
             destination = destinations[sel - 1]
 
-        print("Selected Destination: {}".format(destination.name))
-        print()
+        click.echo("Selected Destination: {}".format(destination.name))
+        click.echo()
 
         if place is None:
             places = self._get_places(destination)
             print_double_list(places)
-            print()
+            click.echo()
 
             sel = get_selection(
                 1,
@@ -574,8 +573,8 @@ class TravelCLI(BaseCLI):
 
     def _print_photo_progress(self, progress):
         print_figlet(APP_NAME)
-        print(f"Downloading photos using {THREADS} threads, see progress below...")
-        print(" ".join([f"{k}: {v:.2f}%" for k, v in sorted(progress.items())]))
+        click.echo(f"Downloading photos using {THREADS} threads, see progress below...")
+        click.echo(" ".join([f"{k}: {v:.2f}%" for k, v in sorted(progress.items())]))
 
     def _upload_photo_to_s3(
         self, img: Image.Image, destination: Destination, place: Place
@@ -620,7 +619,7 @@ class TravelCLI(BaseCLI):
         if destination is None:
             destinations = self._get_destinations()
             print_double_list(destinations)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(destinations),
@@ -651,7 +650,7 @@ class TravelCLI(BaseCLI):
         if not destination:
             destinations = self._get_destinations()
             print_double_list(destinations)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(destinations),
@@ -660,7 +659,7 @@ class TravelCLI(BaseCLI):
                     MenuNavigationUserCommands.GO_BACK,
                 ],
             )
-            print(sel)
+            click.echo(sel)
             if sel in [
                 MenuNavigationCodes.GO_TO_MAIN_MENU,
                 MenuNavigationCodes.GO_BACK,
@@ -674,7 +673,7 @@ class TravelCLI(BaseCLI):
         if place is None:
             places = self._get_places(destination)
             print_double_list(places)
-            print()
+            click.echo()
             sel = get_selection(
                 1,
                 len(destinations),
@@ -709,7 +708,7 @@ class TravelCLI(BaseCLI):
         print_figlet(APP_NAME)
         destinations = self._get_destinations()
         print_double_list(destinations)
-        print()
+        click.echo()
         sel = get_selection(
             1,
             len(destinations),
@@ -736,7 +735,7 @@ class TravelCLI(BaseCLI):
         print_figlet(APP_NAME)
         destinations = self._get_destinations()
         print_double_list(destinations)
-        print()
+        click.echo()
         sel = get_selection(
             1,
             len(destinations),
@@ -757,7 +756,7 @@ class TravelCLI(BaseCLI):
         print_figlet(APP_NAME)
         places = self._get_places(destination)
         print_double_list(places)
-        print()
+        click.echo()
 
         sel = get_selection(
             1,

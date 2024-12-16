@@ -2,35 +2,38 @@ import math
 import os
 import readline
 from typing import Any, List
+
+import click
 from attrs import asdict
 from pyfiglet import Figlet
+
 from personal_site_cli.utils.navigation import (
     MenuNavigationCodes,
-    menuNavigationUserCommandsToCodes,
+    menu_navigation_user_commands_to_codes,
 )
 
 
 def print_figlet(text: str) -> None:
     cls()
-    print(Figlet(font="slant").renderText(text))
+    click.echo(Figlet(font="slant").renderText(text))
 
 
 def print_single_list(sugs: List[str]) -> None:
-    print("Enter < to go back")
+    click.echo("Enter < to go back")
     for i, sug in enumerate(sugs):
-        print(f"{i+1}. {sug}")
+        click.echo(f"{i+1}. {sug}")
 
 
 def print_double_list(lst: List[Any]) -> None:
     half = math.ceil(len(lst) / 2)
 
-    print("Enter < to go back")
+    click.echo("Enter < to go back")
     for i in range(half):
-        print("{0: <50}".format(str(i + 1) + ". " + lst[i].name), end="")
+        click.echo("{0: <50}".format(str(i + 1) + ". " + lst[i].name), end="")
         if i + half + 1 <= len(lst):
-            print("{0}".format(str(i + half + 1) + ". " + lst[i + half].name))
+            click.echo("{0}".format(str(i + half + 1) + ". " + lst[i + half].name))
         else:
-            print()
+            click.echo()
 
 
 def get_selection(
@@ -45,9 +48,11 @@ def get_selection(
     selection = input("Selection: ")
 
     if selection in allowed_chars:
-        return menuNavigationUserCommandsToCodes.get(selection, MenuNavigationCodes.INVALID_INPUT)
+        return menu_navigation_user_commands_to_codes.get(
+            selection, MenuNavigationCodes.INVALID_INPUT
+        )
 
-    if selection in menuNavigationUserCommandsToCodes:
+    if selection in menu_navigation_user_commands_to_codes:
         return MenuNavigationCodes.FORBIDDEN_INPUT
 
     try:
@@ -102,7 +107,7 @@ def cls() -> None:
 
 
 def clr_line() -> None:
-    print("\033[A                             \033[A")
+    click.echo("\033[A                             \033[A")
 
 
 def rlinput(prompt, prefill: str = "") -> str:

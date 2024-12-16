@@ -3,12 +3,13 @@ import os
 import pickle
 from typing import Any, Dict, List
 
+from cattrs import unstructure
 from fuzzywuzzy import fuzz
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+
 from personal_site_cli.models.auth import GoogleConfig
-from cattrs import unstructure
 
 API_SERVICE_NAME = "photoslibrary"
 API_VERSION = "v1"
