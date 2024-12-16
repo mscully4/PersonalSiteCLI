@@ -1,7 +1,7 @@
 import math
 import os
 import readline
-from typing import Any, List
+from typing import Any
 
 import click
 from attrs import asdict
@@ -18,18 +18,18 @@ def print_figlet(text: str) -> None:
     click.echo(Figlet(font="slant").renderText(text))
 
 
-def print_single_list(sugs: List[str]) -> None:
+def print_single_list(sugs: list[str]) -> None:
     click.echo("Enter < to go back")
     for i, sug in enumerate(sugs):
         click.echo(f"{i+1}. {sug}")
 
 
-def print_double_list(lst: List[Any]) -> None:
+def print_double_list(lst: list[Any]) -> None:
     half = math.ceil(len(lst) / 2)
 
     click.echo("Enter < to go back")
     for i in range(half):
-        click.echo("{0: <50}".format(str(i + 1) + ". " + lst[i].name), end="")
+        click.echo("{0: <50}".format(str(i + 1) + ". " + lst[i].name), nl=False)
         if i + half + 1 <= len(lst):
             click.echo("{0}".format(str(i + half + 1) + ". " + lst[i + half].name))
         else:
@@ -39,7 +39,7 @@ def print_double_list(lst: List[Any]) -> None:
 def get_selection(
     minimum: int,
     maximum: int,
-    allowed_chars: List[str],
+    allowed_chars: list[str],
 ) -> int:
     """
     A function for getting a numerical selection from a user. If the selection
@@ -66,7 +66,7 @@ def get_selection(
     return selection_as_int
 
 
-def get_input(msg: str = "Input", default: str = None) -> str:
+def get_input(msg: str = "Input", default: str | None = None) -> str:
     """
     Prompts the user for input and returns that input
     """

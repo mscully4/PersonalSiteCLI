@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any
 
 from boto3 import Session
 from boto3.dynamodb.conditions import ConditionBase, Key
@@ -41,18 +41,18 @@ class DDBClient:
         self.table_name = table_name
         self.table: Table = session.resource("dynamodb").Table(table_name)
 
-    def _query_table(self, filtering_exp: ConditionBase) -> List:
+    def _query_table(self, filtering_exp: ConditionBase) -> list:
         resp: QueryOutputTableTypeDef = self.table.query(KeyConditionExpression=filtering_exp)
         return [item["Entity"] for item in resp["Items"]]
 
-    def _put_item(self, data: Dict[str, Any]) -> None:
+    def _put_item(self, data: dict[str, Any]) -> None:
         resp: PutItemOutputTableTypeDef = self.table.put_item(Item=data)
 
         if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
             raise DynamoDBException(f"Put operation failed: {resp}")
         return
 
-    def _delete_item(self, pk: str, sk: str = None) -> None:
+    def _delete_item(self, pk: str, sk: str | None = None) -> None:
         key = {self.PARTITION_KEY: pk}
         if sk:
             key[self.SORT_KEY] = sk
@@ -64,19 +64,19 @@ class DDBClient:
 
         return
 
-    def get_equals(self, partition_key: str, sort_key: str = None) -> List:
+    def get_equals(self, partition_key: str, sort_key: str | None = None) -> list:
         filtering_exp: ConditionBase = Key(self.PARTITION_KEY).eq(partition_key)
         if sort_key:
             filtering_exp = filtering_exp & Key(self.SORT_KEY).eq(sort_key)
         return self._query_table(filtering_exp)
 
-    def get_begins_with(self, partition_key: str, sort_key: str) -> List:
+    def get_begins_with(self, partition_key: str, sort_key: str) -> list:
         filtering_exp: ConditionBase = Key(self.PARTITION_KEY).eq(partition_key) & Key(
             self.SORT_KEY
         ).begins_with(sort_key)
         return self._query_table(filtering_exp)
 
-    def put(self, pk: str, sk: str, entity: Dict[str, Any]) -> None:
+    def put(self, pk: str, sk: str, entity: dict[str, Any]) -> None:
         data = {self.PARTITION_KEY: pk, self.SORT_KEY: sk, self.ENTITY: entity}
         self._put_item(data)
 

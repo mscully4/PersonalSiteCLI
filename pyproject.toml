@@ -44,6 +44,9 @@ numpy = "^2.2.0"
 python-levenshtein = "^0.26.1"
 cattrs = "^24.1.2"
 isort = "^5.13.2"
+pydantic = "^2.10.3"
+mypy = "^1.13.0"
+types-requests = "^2.32.0.20241016"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.8.3"
@@ -57,3 +60,7 @@ line-length = 100
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+
+[tool.mypy]
+plugins = ['pydantic.mypy']
+ignore_missing_imports = true

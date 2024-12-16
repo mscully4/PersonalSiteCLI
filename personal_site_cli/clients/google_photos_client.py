@@ -20,7 +20,7 @@ class GooglePhotosClient(object):
     def __init__(self, config: GoogleConfig, scopes: list[str] = GOOGLE_PHOTOS_SCOPES):
         self.service = self._create_service(config, scopes)
         self.albums = asyncio.get_event_loop().create_task(self.get_albums())
-        self.done = None
+        self.done: bool = False
 
     def _create_service(self, config: GoogleConfig, scopes: list[str]) -> Any:
         """

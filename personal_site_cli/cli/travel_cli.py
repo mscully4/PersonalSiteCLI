@@ -1,5 +1,5 @@
 from threading import Thread
-from typing import List, Optional, Set, Tuple
+from typing import Any
 
 import click
 from PIL import Image
@@ -68,7 +68,7 @@ class TravelCLI(BaseCLI):
         self.ddb_client = ddb_client
 
         self._run = False
-        self._menu_actions: List[MenuAction] = [
+        self._menu_actions: list[MenuAction] = [
             MenuAction("Add Destination", self.add_destination),
             MenuAction("Add Place", self.add_place, is_async=True),
             MenuAction("Add Album", self.add_album, is_async=True),
@@ -117,21 +117,21 @@ class TravelCLI(BaseCLI):
             else:
                 action.command()
 
-    def _get_destinations(self) -> List[Destination]:
+    def _get_destinations(self) -> list[Destination]:
         """
         A method for retrieving all Destinations
         """
         query_result = self.ddb_client.get_equals(self.DESTINATION_PK)
-        destinations: List[Destination] = [Destination(**obj) for obj in query_result]
+        destinations: list[Destination] = [Destination(**obj) for obj in query_result]
         destinations.sort(key=lambda x: [x.country_code, x.name])
         return destinations
 
-    def _get_places(self, destination: Destination) -> List[Place]:
+    def _get_places(self, destination: Destination) -> list[Place]:
         """
         A method for retrieving all Places for a Destination
         """
         query_result = self.ddb_client.get_begins_with(self.PLACE_PK, destination.place_id)
-        places: List[Place] = [Place(**obj) for obj in query_result]
+        places: list[Place] = [Place(**obj) for obj in query_result]
         places.sort(key=lambda x: x.name)
         return places
 
@@ -227,13 +227,13 @@ class TravelCLI(BaseCLI):
 
         return
 
-    async def add_place(self, destination: Optional[Destination] = None) -> None:
+    async def add_place(self, destination: Destination | None = None) -> None:
         """
         A method for creating a new Place object
         """
         assert destination is None or isinstance(destination, Destination)
 
-        destinations: List[Destination] = []
+        destinations: list[Destination] = []
 
         print_figlet(APP_NAME)
 
@@ -411,7 +411,7 @@ class TravelCLI(BaseCLI):
             MenuNavigationCodes.GO_TO_MAIN_MENU,
             MenuNavigationCodes.GO_BACK,
         ]:
-            self.add_album(destination, place)
+            await self.add_album(destination, place)
             return
 
         data = self.google_photos_client.get_album_info(suggestions[sel][1])
@@ -426,7 +426,7 @@ class TravelCLI(BaseCLI):
         self.ddb_client.put(
             self.ALBUM_PK,
             self.ALBUM_SK_FS.format(place_id=place.place_id, album_id=album.album_id),
-            album.asdict(),
+            album.model_dump(),
         )
 
         if existing_albums:
@@ -437,7 +437,7 @@ class TravelCLI(BaseCLI):
         if ask_yes_no_question("Would you like to add photos to this album? (y/n): "):
             self.add_photos(destination=destination, place=place)
 
-    def _get_existing_albums(self, place: Place) -> List[Album]:
+    def _get_existing_albums(self, place: Place) -> list[Album]:
         return [
             Album(**album)
             for album in self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
@@ -449,7 +449,7 @@ class TravelCLI(BaseCLI):
             sk=self.ALBUM_SK_FS.format(place_id=album.place_id, album_id=album.album_id),
         )
 
-    def add_photos(self, destination: Destination = None, place: Place = None) -> None:
+    def add_photos(self, destination: Destination | None = None, place: Place | None = None) -> None:
         """
         A method for adding photos to a Place
         """
@@ -516,7 +516,7 @@ class TravelCLI(BaseCLI):
         ):
             self.add_photos(destination=destination)
 
-    def _get_existing_photos(self, place: Place) -> Set[str]:
+    def _get_existing_photos(self, place: Place) -> set[str]:
         existing = self.ddb_client.get_begins_with(self.PHOTO_PK, place.place_id)
         return set([image["hsh"] for image in existing])
 
@@ -528,7 +528,7 @@ class TravelCLI(BaseCLI):
         existing = self._get_existing_photos(place)
         chunks = split(photos, THREADS)
 
-        progress = {}
+        progress: dict[Any, Any] = {}
         threads = []
         for i, chunk in enumerate(chunks):
             thread = Thread(
@@ -540,7 +540,7 @@ class TravelCLI(BaseCLI):
         for thread in threads:
             thread.join()
 
-    def _process_photo(self, chunk, destination, place, existing, thread_no, progress):
+    def _process_photo(self, chunk, destination, place, existing, thread_no, progress) -> None:
         for i, obj in enumerate(chunk):
             img: Image.Image = download_image(
                 obj["baseUrl"] + "=d"
@@ -565,7 +565,7 @@ class TravelCLI(BaseCLI):
             self.ddb_client.put(
                 self.PHOTO_PK,
                 self.PHOTO_SK_FS.format(place_id=place.place_id, photo_id=photo.photo_id),
-                photo.asdict(),
+                photo.model_dump(),
             )
             progress[thread_no] = 100 * ((i + 1) / len(chunk))
 
@@ -578,7 +578,7 @@ class TravelCLI(BaseCLI):
 
     def _upload_photo_to_s3(
         self, img: Image.Image, destination: Destination, place: Place
-    ) -> Tuple[str, str, int, int]:
+    ) -> tuple[str, str, int, int]:
         img = rescale_image(img, PHOTO_MAX_SIZE)
         buffer = save_image_to_buffer(img)
         hsh = hash_buffer_md5(buffer)
@@ -611,7 +611,7 @@ class TravelCLI(BaseCLI):
         )
         return s3_path
 
-    def edit_destination(self, destination: Destination = None) -> None:
+    def edit_destination(self, destination: Destination | None = None) -> None:
         """
         A method for editing a Destination
         """
@@ -639,10 +639,10 @@ class TravelCLI(BaseCLI):
             destination = destinations[sel - 1]
 
         new_dest: Destination = edit_obj(destination)
-        self.ddb_client.put(self.DESTINATION_PK, destination.place_id, new_dest.asdict())
+        self.ddb_client.put(self.DESTINATION_PK, destination.place_id, new_dest.model_dump())
 
     # Menu Option 5
-    def edit_place(self, destination: Destination = None, place: Place = None) -> None:
+    def edit_place(self, destination: Destination | None = None, place: Place | None = None) -> None:
         """
         A method for editing a Place
         """
@@ -698,7 +698,7 @@ class TravelCLI(BaseCLI):
         self.ddb_client.put(
             self.PLACE_PK,
             self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
-            new_place.asdict(),
+            new_place.model_dump(),
         )
 
     def delete_destination(self) -> None:

@@ -21,7 +21,7 @@ class GoogleMapsClient(object):
     def get_place_suggestions(
         self,
         text: str,
-        location: Tuple[float, float] = None,
+        location: Tuple[float, float] | None = None,
         radius: int = DEFAULT_SEARCH_RADIUS_METERS,
     ) -> List:
         """
