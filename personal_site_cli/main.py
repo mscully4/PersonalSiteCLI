@@ -16,18 +16,18 @@ def main() -> None:
     config = get_config()
 
     # Instantiating Google Photos class
-    google_photos_client = GooglePhotosClient(config.config["google"], GOOGLE_PHOTOS_SCOPES)
+    google_photos_client = GooglePhotosClient(config.google, GOOGLE_PHOTOS_SCOPES)
 
     # Instantiating Google Maps class
-    google_maps_client = GoogleMapsClient(api_key=config.config["google"]["api_key"])
+    google_maps_client = GoogleMapsClient(api_key=config.google.api_key)
 
-    session = boto3.Session(region_name=config.config["aws"]["region_name"])
+    session = boto3.Session(region_name=config.aws.region_name)
     s3_client = S3Client(
         session,
-        bucket_name=config.config["aws"]["photos_bucket"],
+        bucket_name=config.aws.photos_bucket,
     )
 
-    ddb_client = DDBClient(session, config.config["aws"]["table_name"])
+    ddb_client = DDBClient(session, config.aws.table_name)
 
     cli = PersonalSiteCLI(
         google_maps_client=google_maps_client,
@@ -37,7 +37,6 @@ def main() -> None:
     )
 
     asyncio.get_event_loop().run_until_complete(run(cli))
-
 
 
 async def run(cli: PersonalSiteCLI) -> None:

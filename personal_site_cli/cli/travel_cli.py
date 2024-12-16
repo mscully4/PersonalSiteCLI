@@ -24,7 +24,11 @@ from personal_site_cli.utils.cli_utils import (
     print_single_list,
 )
 from personal_site_cli.utils.constants import APP_NAME
-from personal_site_cli.utils.navigation import MenuAction, MenuNavigationCodes, MenuNavigationUserCommands
+from personal_site_cli.utils.navigation import (
+    MenuAction,
+    MenuNavigationCodes,
+    MenuNavigationUserCommands,
+)
 from personal_site_cli.utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,

@@ -7,18 +7,21 @@ from fuzzywuzzy import fuzz
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
+from personal_site_cli.models.auth import GoogleConfig
+from cattrs import unstructure
 
 API_SERVICE_NAME = "photoslibrary"
 API_VERSION = "v1"
+GOOGLE_PHOTOS_SCOPES = ["https://www.googleapis.com/auth/photoslibrary.readonly"]
 
 
 class GooglePhotosClient(object):
-    def __init__(self, config, scopes):
+    def __init__(self, config: GoogleConfig, scopes: list[str] = GOOGLE_PHOTOS_SCOPES):
         self.service = self._create_service(config, scopes)
         self.albums = asyncio.get_event_loop().create_task(self.get_albums())
         self.done = None
 
-    def _create_service(self, config, scopes) -> Any:
+    def _create_service(self, config: GoogleConfig, scopes: list[str]) -> Any:
         """
         A method for authenticating with Google
         Copy/Pasted this directly from Google Documentation
@@ -34,7 +37,7 @@ class GooglePhotosClient(object):
             if cred and cred.expired and cred.refresh_token:
                 cred.refresh(Request())
             else:
-                flow = InstalledAppFlow.from_client_config(config, scopes)
+                flow = InstalledAppFlow.from_client_config(unstructure(config), scopes)
                 cred = flow.run_local_server()
 
             with open(pickle_file, "wb") as token:

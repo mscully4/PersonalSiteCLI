@@ -12,7 +12,13 @@ from personal_site_cli.utils.cli_utils import (
 from personal_site_cli.utils.constants import (
     APP_NAME,
 )
-from personal_site_cli.clients import DDBClient, GooglePhotosClient, S3Client, Namespaces, HomeEntities
+from personal_site_cli.clients import (
+    DDBClient,
+    GooglePhotosClient,
+    S3Client,
+    Namespaces,
+    HomeEntities,
+)
 from personal_site_cli.utils.photo_processing import (
     IMAGE_TYPE,
     download_image,
