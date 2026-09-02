@@ -1,7 +1,7 @@
 import math
 import os
 import readline
-from typing import Any, List
+from typing import Any, List, Optional
 from attrs import asdict
 from pyfiglet import Figlet
 from utils.navigation import (
@@ -61,7 +61,7 @@ def get_selection(
     return selection_as_int
 
 
-def get_input(msg: str = "Input", default: str = None) -> str:
+def get_input(msg: str = "Input", default: Optional[str] = None) -> str:
     """
     Prompts the user for input and returns that input
     """

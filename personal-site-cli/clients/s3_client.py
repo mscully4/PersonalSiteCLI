@@ -37,7 +37,8 @@ class S3Client:
         try:
             self._s3_resource.Object(self.bucket_name, file_name).load()
         except botocore.exceptions.ClientError as e:
-            if e.response["Error"]["Code"] == "404":
+            if e.response["Error"]["Code"] in ("404", "NoSuchKey"):
                 return False
-        finally:
-            return True
+            raise
+
+        return True

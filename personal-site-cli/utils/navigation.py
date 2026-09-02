@@ -1,12 +1,11 @@
 from typing import Callable
-from attr import field, frozen
+from attr import frozen
 
 
 @frozen(auto_attribs=True)
 class MenuAction:
     name: str
     command: Callable
-    is_async: bool = field(default=False)
 
 
 class MenuNavigationCodes:

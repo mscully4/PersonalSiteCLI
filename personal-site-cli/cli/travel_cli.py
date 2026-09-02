@@ -1,9 +1,10 @@
-from typing import List, Optional, Set, Tuple
+from io import BytesIO
+from typing import Dict, List, Optional, Set
 
 from clients import (
     DDBClient,
     GoogleMapsClient,
-    GooglePhotosClient,
+    ImmichClient,
     Namespaces,
     S3Client,
     TravelEntities,
@@ -14,7 +15,6 @@ from models.travel import Album, Destination, Photo, Place
 from PIL import Image
 from utils.cli_utils import (
     ask_yes_no_question,
-    clr_line,
     cls,
     edit_obj,
     get_input,
@@ -29,8 +29,8 @@ from utils.photo_processing import (
     IMAGE_TYPE,
     PHOTO_MAX_SIZE,
     THUMBNAIL_MAX_SIZE,
-    download_image,
     hash_buffer_md5,
+    image_from_bytes,
     rescale_image,
     save_image_to_buffer,
 )
@@ -55,20 +55,25 @@ class TravelCLI(BaseCLI):
     def __init__(
         self,
         google_maps_client: GoogleMapsClient,
-        google_photos_client: GooglePhotosClient,
+        immich_client: ImmichClient,
         s3_client: S3Client,
         ddb_client: DDBClient,
     ):
         self.google_maps_client = google_maps_client
-        self.google_photos_client = google_photos_client
+        self.immich_client = immich_client
         self.s3_client = s3_client
         self.ddb_client = ddb_client
 
         self._run = False
+
+        # Set by the batch re-import script so progress does not repaint the
+        # screen and destroy the log
+        self.quiet = False
+
         self._menu_actions: List[MenuAction] = [
             MenuAction("Add Destination", self.add_destination),
-            MenuAction("Add Place", self.add_place, is_async=True),
-            MenuAction("Add Album", self.add_album, is_async=True),
+            MenuAction("Add Place", self.add_place),
+            MenuAction("Add Album", self.add_album),
             MenuAction("Add Photos", self.add_photos),
             MenuAction("Edit Destination", self.edit_destination),
             MenuAction("Edit Place", self.edit_place),
@@ -94,7 +99,7 @@ class TravelCLI(BaseCLI):
 
         print()
 
-    async def run(self) -> None:
+    def run(self) -> None:
         """
         A method for perfroming a task in the Travel CLI
         """
@@ -109,10 +114,7 @@ class TravelCLI(BaseCLI):
                 return
 
             action = self._menu_actions[sel - 1]
-            if action.is_async:
-                await action.command()
-            else:
-                action.command()
+            action.command()
 
     def _get_destinations(self) -> List[Destination]:
         """
@@ -197,10 +199,10 @@ class TravelCLI(BaseCLI):
             print()
 
             id_ = input("Place ID: ")
-            if id_ == MenuNavigationCodes.GO_TO_MAIN_MENU:
+            if id_ == MenuNavigationUserCommands.GO_TO_MAIN_MENU:
                 cls()
                 return
-            elif id_ == MenuNavigationCodes.GO_BACK:
+            elif id_ == MenuNavigationUserCommands.GO_BACK:
                 self.add_destination()
                 return
 
@@ -224,7 +226,7 @@ class TravelCLI(BaseCLI):
 
         return
 
-    async def add_place(self, destination: Optional[Destination] = None) -> None:
+    def add_place(self, destination: Optional[Destination] = None) -> None:
         """
         A method for creating a new Place object
         """
@@ -271,14 +273,9 @@ class TravelCLI(BaseCLI):
         )
         print()
 
-        # The list of destinations might have already been retrieved (if no destination was specified as an argument), so
-        # check
-        if not destinations:
-            destinations = self._get_destinations()
-
         sel = get_selection(
             0,
-            len(destinations),
+            len(suggestions),
             allowed_chars=[
                 MenuNavigationUserCommands.GO_TO_MAIN_MENU,
                 MenuNavigationUserCommands.GO_BACK,
@@ -289,7 +286,7 @@ class TravelCLI(BaseCLI):
             return
 
         elif sel == MenuNavigationCodes.GO_BACK:
-            await self.add_place(destination=destination)
+            self.add_place(destination=destination)
             return
 
         # The list displayed to the user starts at 1, so decrement
@@ -320,15 +317,15 @@ class TravelCLI(BaseCLI):
 
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add an album to this place? (y/n): "):
-            await self.add_album(destination=destination, place=place)
+            self.add_album(destination=destination, place=place)
 
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add another place to this destination? (y/n): "):
-            await self.add_place(destination=destination)
+            self.add_place(destination=destination)
 
         return
 
-    async def add_album(self, destination=None, place=None) -> None:
+    def add_album(self, destination=None, place=None) -> None:
         """
         A method for creating a new Album object
         """
@@ -388,47 +385,56 @@ class TravelCLI(BaseCLI):
             f"{destination.name} -- {place.name}",
         )
 
-        # Album information has to be loaded from Google Photos.  If the loading process isn't done, wait for it.
-        if not self.google_photos_client.done:
-            await self.google_photos_client.albums
-
         print()
 
-        # Fuzzy match input against existing Google Photos albums
-        suggestions = self.google_photos_client.get_album_suggestions(
-            self.google_photos_client.albums.result(), inp, 5
+        # Fuzzy match input against existing Immich albums
+        suggestions = self.immich_client.get_album_suggestions(
+            self.immich_client.get_albums(), inp, 5
         )
 
         print_single_list([sug[0] for sug in suggestions])
 
         print()
-        sel = get_selection(0, len(suggestions), []) - 1
+        sel = get_selection(
+            1,
+            len(suggestions),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
 
-        if sel in [
-            MenuNavigationCodes.GO_TO_MAIN_MENU,
-            MenuNavigationCodes.GO_BACK,
-        ]:
+        if sel == MenuNavigationCodes.GO_TO_MAIN_MENU:
+            cls()
+            return
+
+        # Anything else negative is a request to go back, or an entry that
+        # cannot be used as an index, so re-prompt rather than crash
+        if sel < 0:
             self.add_album(destination, place)
             return
 
-        data = self.google_photos_client.get_album_info(suggestions[sel][1])
+        data = self.immich_client.get_album_info(suggestions[sel - 1][1])
 
         album = Album(
             album_id=data["id"],
-            title=data["title"],
+            title=data["albumName"],
             destination_id=destination.place_id,
             place_id=place.place_id,
         )
+
+        # Unlink any album previously attached to this place before writing the
+        # new one.  Skip the new album itself, otherwise re-selecting the same
+        # album would delete the record just written
+        for existing_album in existing_albums:
+            if existing_album.album_id != album.album_id:
+                self._delete_existing_album(existing_album)
 
         self.ddb_client.put(
             self.ALBUM_PK,
             self.ALBUM_SK_FS.format(place_id=place.place_id, album_id=album.album_id),
             album.asdict(),
         )
-
-        if existing_albums:
-            for album in existing_albums:
-                self._delete_existing_album(album)
 
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add photos to this album? (y/n): "):
@@ -446,7 +452,9 @@ class TravelCLI(BaseCLI):
             sk=self.ALBUM_SK_FS.format(place_id=album.place_id, album_id=album.album_id),
         )
 
-    def add_photos(self, destination: Destination = None, place: Place = None) -> None:
+    def add_photos(
+        self, destination: Optional[Destination] = None, place: Optional[Place] = None
+    ) -> None:
         """
         A method for adding photos to a Place
         """
@@ -518,14 +526,15 @@ class TravelCLI(BaseCLI):
         return set([image["hsh"] for image in existing])
 
     def _process_photos(self, destination: Destination, place: Place) -> None:
-        print_figlet(APP_NAME)
+        if not self.quiet:
+            print_figlet(APP_NAME)
         album = self._get_album(place)
-        photos = self.google_photos_client.get_album_photos(album.album_id)
+        photos = self.immich_client.get_album_photos(album.album_id)
 
         existing = self._get_existing_photos(place)
         chunks = split(photos, THREADS)
 
-        progress = {}
+        progress: Dict[int, float] = {}
         threads = []
         for i, chunk in enumerate(chunks):
             thread = Thread(
@@ -538,24 +547,31 @@ class TravelCLI(BaseCLI):
             thread.join()
 
     def _process_photo(self, chunk, destination, place, existing, thread_no, progress):
-        for i, obj in enumerate(chunk):
-            img: Image.Image = download_image(
-                obj["baseUrl"] + "=d"
-            )  # The =d is needed to download the photo
-            photo_src, hsh, width, height = self._upload_photo_to_s3(img, destination, place)
+        for i, asset in enumerate(chunk):
+            img: Image.Image = image_from_bytes(self.immich_client.download_asset(asset["id"]))
+
+            # Hash the rescaled photo before writing anything, so photos that
+            # are already recorded are not uploaded to S3 a second time
+            rescaled = rescale_image(img, PHOTO_MAX_SIZE)
+            buffer = save_image_to_buffer(rescaled)
+            hsh = hash_buffer_md5(buffer)
+
+            progress[thread_no] = 100 * ((i + 1) / len(chunk))
+            self._print_photo_progress(progress)
 
             if hsh in existing:
                 continue
 
+            photo_src = self._upload_photo_to_s3(buffer, hsh, destination, place)
             thumbnail_src = self._upload_thumbnail_to_s3(img, destination, place)
             photo = Photo(
-                photo_id=obj["id"],
+                photo_id=asset["id"],
                 src=photo_src,
                 destination_id=destination.place_id,
                 place_id=place.place_id,
-                height=height,
-                width=width,
-                creation_timestamp=obj["mediaMetadata"]["creationTime"],
+                height=rescaled.height,
+                width=rescaled.width,
+                creation_timestamp=self.immich_client.asset_timestamp(asset),
                 hsh=hsh,
                 thumbnail_src=thumbnail_src,
             )
@@ -564,31 +580,26 @@ class TravelCLI(BaseCLI):
                 self.PHOTO_SK_FS.format(place_id=place.place_id, photo_id=photo.photo_id),
                 photo.asdict(),
             )
-            progress[thread_no] = 100 * ((i + 1) / len(chunk))
-
-            self._print_photo_progress(progress)
 
     def _print_photo_progress(self, progress):
+        if self.quiet:
+            return
+
         print_figlet(APP_NAME)
         print(f"Downloading photos using {THREADS} threads, see progress below...")
         print(" ".join([f"{k}: {v:.2f}%" for k, v in sorted(progress.items())]))
 
     def _upload_photo_to_s3(
-        self, img: Image.Image, destination: Destination, place: Place
-    ) -> Tuple[str, str, int, int]:
-        img = rescale_image(img, PHOTO_MAX_SIZE)
-        buffer = save_image_to_buffer(img)
-        hsh = hash_buffer_md5(buffer)
+        self, buffer: BytesIO, hsh: str, destination: Destination, place: Place
+    ) -> str:
         file_name = f"{hsh}.{IMAGE_TYPE}"
         file_path = self.s3_client.generate_s3_path_for_image(
             destination.place_id, place.place_id, file_name
         )
 
-        s3_path = self.s3_client.write_image_to_s3(
+        return self.s3_client.write_image_to_s3(
             file_path, buffer, ACL="public-read", ContentType=f"image/{IMAGE_TYPE}"
         )
-
-        return s3_path, hsh, img.width, img.height
 
     def _upload_thumbnail_to_s3(
         self, img: Image.Image, destination: Destination, place: Place
@@ -604,11 +615,11 @@ class TravelCLI(BaseCLI):
             thumbnail_path,
             buffer,
             ACL="public-read",
-            ContentType="image/png",
+            ContentType=f"image/{IMAGE_TYPE}",
         )
         return s3_path
 
-    def edit_destination(self, destination: Destination = None) -> None:
+    def edit_destination(self, destination: Optional[Destination] = None) -> None:
         """
         A method for editing a Destination
         """
@@ -639,7 +650,9 @@ class TravelCLI(BaseCLI):
         self.ddb_client.put(self.DESTINATION_PK, destination.place_id, new_dest.asdict())
 
     # Menu Option 5
-    def edit_place(self, destination: Destination = None, place: Place = None) -> None:
+    def edit_place(
+        self, destination: Optional[Destination] = None, place: Optional[Place] = None
+    ) -> None:
         """
         A method for editing a Place
         """
@@ -656,7 +669,6 @@ class TravelCLI(BaseCLI):
                     MenuNavigationUserCommands.GO_BACK,
                 ],
             )
-            print(sel)
             if sel in [
                 MenuNavigationCodes.GO_TO_MAIN_MENU,
                 MenuNavigationCodes.GO_BACK,
@@ -673,7 +685,7 @@ class TravelCLI(BaseCLI):
             print()
             sel = get_selection(
                 1,
-                len(destinations),
+                len(places),
                 allowed_chars=[
                     MenuNavigationUserCommands.GO_TO_MAIN_MENU,
                     MenuNavigationUserCommands.GO_BACK,
@@ -757,7 +769,7 @@ class TravelCLI(BaseCLI):
 
         sel = get_selection(
             1,
-            len(destinations),
+            len(places),
             allowed_chars=[
                 MenuNavigationUserCommands.GO_TO_MAIN_MENU,
                 MenuNavigationUserCommands.GO_BACK,

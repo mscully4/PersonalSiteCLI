@@ -1,47 +1,38 @@
 #! /usr/bin/env python3
 
-import asyncio
 import os
 
 import boto3
 
 from cli import PersonalSiteCLI
-from clients import DDBClient, GoogleMapsClient, GooglePhotosClient, S3Client
+from clients import DDBClient, GoogleMapsClient, ImmichClient, S3Client
 from conf.config import Config
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
-async def main() -> None:
-    # Retrieving keys from config file
-    config_path = os.path.join(ROOT_DIR + "/conf/config.yaml")
-    assert os.path.exists(config_path)
+def main() -> None:
+    config = Config.from_env_file(os.path.join(ROOT_DIR, ".env"))
 
-    config = Config(config_path)
+    immich_client = ImmichClient(config.immich_base_url, config.immich_api_key)
 
-    # Instantiating Google Photos class
-    GOOGLE_PHOTOS_SCOPES = ["https://www.googleapis.com/auth/photoslibrary.readonly"]
-    google_photos_client = GooglePhotosClient(config.config["GOOGLE"], GOOGLE_PHOTOS_SCOPES)
+    # Fail here rather than part way through a photo upload
+    immich_client.ping()
 
-    # Instantiating Google Maps class
-    google_maps_client = GoogleMapsClient(api_key=config.config["GOOGLE"]["api_key"])
+    google_maps_client = GoogleMapsClient(api_key=config.google_maps_api_key)
 
-    session = boto3.Session(region_name=config.config["AWS"]["region_name"])
-    s3_client = S3Client(
-        session,
-        bucket_name=config.config["AWS"]["photos_bucket"],
-    )
-
-    ddb_client = DDBClient(session, config.config["AWS"]["table_name"])
+    session = boto3.Session(**config.boto3_session_kwargs())
+    s3_client = S3Client(session, bucket_name=config.aws_photos_bucket)
+    ddb_client = DDBClient(session, config.aws_table_name)
 
     cli = PersonalSiteCLI(
         google_maps_client=google_maps_client,
-        google_photos_client=google_photos_client,
+        immich_client=immich_client,
         s3_client=s3_client,
         ddb_client=ddb_client,
     )
-    await cli.run()
+    cli.run()
 
 
 if __name__ == "__main__":
-    asyncio.get_event_loop().run_until_complete(main())
+    main()

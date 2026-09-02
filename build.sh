@@ -3,16 +3,17 @@
 set -e
 
 echo "Running Black"
-black ./personal-site-cli --check
+uv run black ./personal-site-cli --check
 printf "\n"
 
+# Still disabled: 9 pre-existing files fail. Run `uv run isort ./personal-site-cli` to fix.
 # echo "Running isort"
-# (cd ./personal-site-cli && python3 -m isort --check-only --recursive .)
+# uv run isort ./personal-site-cli --check-only
 # printf "\n"
 
 echo "Running Flake8"
-flake8 ./personal-site-cli
+uv run flake8 ./personal-site-cli
 printf "\n"
 
 echo "Running Mypy"
-mypy ./personal-site-cli
+uv run mypy ./personal-site-cli

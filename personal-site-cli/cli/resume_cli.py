@@ -41,7 +41,7 @@ class ResumeCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Travel Menu")
+        print("Resume Menu")
 
         print()
 
@@ -51,17 +51,17 @@ class ResumeCLI(BaseCLI):
 
         print()
 
-    async def run(self) -> None:
+    def run(self) -> None:
         """
-        A method for perfroming a task in the Travel CLI
+        A method for perfroming a task in the Resume CLI
         """
         self._run = True
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
+            sel = get_selection(0, len(self._menu_actions), allowed_chars=[])
 
-            if sel == 0:
+            if sel <= 0:
                 self._run = False
                 return
 
@@ -76,7 +76,7 @@ class ResumeCLI(BaseCLI):
         file_path = f"resume/images/{file_name}"
 
         s3_path = self.s3_client.write_image_to_s3(
-            file_path, buffer, ACL="public-read", ContentType="image/png"
+            file_path, buffer, ACL="public-read", ContentType=f"image/{IMAGE_TYPE}"
         )
         return s3_path
 

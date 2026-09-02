@@ -12,15 +12,15 @@ from utils.cli_utils import (
 from utils.constants import (
     APP_NAME,
 )
-from clients import DDBClient, GooglePhotosClient, S3Client, Namespaces, HomeEntities
+from clients import DDBClient, ImmichClient, S3Client, Namespaces, HomeEntities
 from utils.photo_processing import (
     IMAGE_TYPE,
-    download_image,
     hash_buffer_md5,
+    image_from_bytes,
     rescale_image,
     save_image_to_buffer,
 )
-from utils.navigation import MenuAction
+from utils.navigation import MenuAction, MenuNavigationUserCommands
 from models.home import Photo
 from PIL import Image
 
@@ -31,17 +31,17 @@ class HomeCLI(BaseCLI):
 
     def __init__(
         self,
-        google_photos_client: GooglePhotosClient,
+        immich_client: ImmichClient,
         s3_client: S3Client,
         ddb_client: DDBClient,
     ):
         self.s3_client = s3_client
         self.ddb_client = ddb_client
-        self.google_photos_client = google_photos_client
+        self.immich_client = immich_client
 
         self._run = False
         self._menu_actions: List[MenuAction] = [
-            MenuAction("Update Photos", self.update_photos, is_async=True),
+            MenuAction("Update Photos", self.update_photos),
         ]
 
     def _print_menu(self):
@@ -52,7 +52,7 @@ class HomeCLI(BaseCLI):
         cls()
 
         print_figlet(APP_NAME)
-        print("Travel Menu")
+        print("Home Menu")
 
         print()
 
@@ -62,7 +62,7 @@ class HomeCLI(BaseCLI):
 
         print()
 
-    async def run(self) -> None:
+    def run(self) -> None:
         """
         A method for performing a task in the Home CLI
         """
@@ -70,19 +70,16 @@ class HomeCLI(BaseCLI):
 
         while self._run:
             self._print_menu()
-            sel = get_selection(1, len(self._menu_actions), allowed_chars=[])
+            sel = get_selection(0, len(self._menu_actions), allowed_chars=[])
 
-            if sel == 0:
+            if sel <= 0:
                 self._run = False
                 return
 
             action = self._menu_actions[sel - 1]
-            if action.is_async:
-                await action.command()
-            else:
-                action.command()
+            action.command()
 
-    async def update_photos(self):
+    def update_photos(self):
         """
         A method for updating the photos on the home page
         """
@@ -92,23 +89,30 @@ class HomeCLI(BaseCLI):
             "Enter the album name to use the autocomplete functionality",
         )
 
-        # Album information has to be loaded from Google Photos.  If the loading process isn't done, wait for it.
-        if not self.google_photos_client.done:
-            await self.google_photos_client.albums
-
         print()
 
-        # Fuzzy match input against existing Google Photos albums
-        suggestions = self.google_photos_client.get_album_suggestions(
-            self.google_photos_client.albums.result(), inp, 5
+        # Fuzzy match input against existing Immich albums
+        suggestions = self.immich_client.get_album_suggestions(
+            self.immich_client.get_albums(), inp, 5
         )
 
         print_single_list([sug[0] for sug in suggestions])
 
         print()
-        sel = get_selection(0, len(suggestions), []) - 1
+        sel = get_selection(
+            1,
+            len(suggestions),
+            allowed_chars=[
+                MenuNavigationUserCommands.GO_TO_MAIN_MENU,
+                MenuNavigationUserCommands.GO_BACK,
+            ],
+        )
 
-        data = self.google_photos_client.get_album_info(suggestions[sel][1])
+        if sel < 0:
+            cls()
+            return
+
+        data = self.immich_client.get_album_info(suggestions[sel - 1][1])
         self._process_photos(data["id"])
 
     def _get_existing_photos(self) -> Set[str]:
@@ -124,13 +128,13 @@ class HomeCLI(BaseCLI):
         photos, uploading them to S3 and writing the info to DDB
         """
         print_figlet(APP_NAME)
-        photos = self.google_photos_client.get_album_photos(album_id)
+        photos = self.immich_client.get_album_photos(album_id)
 
         existing = self._get_existing_photos()
 
         for i, obj in enumerate(photos):
             print(f"Uploading Photo: {i + 1} out of {len(photos)}")
-            img: Image.Image = download_image(obj["baseUrl"] + "=d")
+            img: Image.Image = image_from_bytes(self.immich_client.download_asset(obj["id"]))
             img = rescale_image(img, self.MAX_PHOTO_SIZE)
             buffer = save_image_to_buffer(img)
             hsh = hash_buffer_md5(buffer)
@@ -148,7 +152,7 @@ class HomeCLI(BaseCLI):
                 src=s3_path,
                 height=img.height,
                 width=img.width,
-                creation_timestamp=obj["mediaMetadata"]["creationTime"],
+                creation_timestamp=self.immich_client.asset_timestamp(obj),
                 hsh=hsh,
             )
             self.ddb_client.put(self.PHOTO_PK, hsh, asdict(photo))

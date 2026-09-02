@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import googlemaps as gm
 from models.google_maps import GeocodedDestination, GeocodedPlace
@@ -20,7 +20,7 @@ class GoogleMapsClient(object):
     def get_place_suggestions(
         self,
         text: str,
-        location: Tuple[float, float] = None,
+        location: Optional[Tuple[float, float]] = None,
         radius: int = DEFAULT_SEARCH_RADIUS_METERS,
     ) -> List:
         """

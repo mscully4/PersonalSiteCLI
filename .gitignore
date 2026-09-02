@@ -1,0 +1,27 @@
+# Secrets -- never commit
+.env
+.env.*
+!.env.example
+personal-site-cli/conf/config.yaml
+*.pickle
+
+# Generated reports
+album_relink_report.csv
+album_rebuild_report.csv
+reimport_backups/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+venv/
+.venv/
+
+# Tooling
+.mypy_cache/
+.pytest_cache/
+
+# OS
+.DS_Store

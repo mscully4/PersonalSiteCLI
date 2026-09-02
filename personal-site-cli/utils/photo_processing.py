@@ -6,7 +6,11 @@ from PIL import Image
 
 THUMBNAIL_MAX_SIZE = 512
 PHOTO_MAX_SIZE = 2048
-IMAGE_TYPE = "png"
+
+# WebP is roughly a fourteenth the size of PNG for photographs and, unlike
+# JPEG, can still carry an alpha channel, which the resume logos rely on
+IMAGE_TYPE = "webp"
+IMAGE_QUALITY = 85
 
 
 def download_image(url: str) -> Image.Image:
@@ -19,13 +23,22 @@ def download_image(url: str) -> Image.Image:
     return Image.open(io.BytesIO(content))
 
 
-def save_image_to_buffer(image: Image.Image, image_format=IMAGE_TYPE) -> io.BytesIO:
+def image_from_bytes(content: bytes) -> Image.Image:
+    """
+    Opens an image from raw bytes, e.g. an asset downloaded from Immich
+    """
+    return Image.open(io.BytesIO(content))
+
+
+def save_image_to_buffer(
+    image: Image.Image, image_format=IMAGE_TYPE, quality: int = IMAGE_QUALITY
+) -> io.BytesIO:
     """
     Writes a Pillow Image to a buffer and returns the buffer
     """
     buffer = io.BytesIO()
     # Save the image back out to a buffer and repoint the buffer back to the beginning
-    image.save(buffer, image_format)
+    image.save(buffer, image_format, quality=quality)
     buffer.seek(0)
     return buffer
 

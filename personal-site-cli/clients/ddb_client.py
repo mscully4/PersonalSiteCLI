@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from boto3 import Session
 from boto3.dynamodb.conditions import ConditionBase, Key
@@ -51,7 +51,7 @@ class DDBClient:
             raise DynamoDBException(f"Put operation failed: {resp}")
         return
 
-    def _delete_item(self, pk: str, sk: str = None) -> None:
+    def _delete_item(self, pk: str, sk: Optional[str] = None) -> None:
         key = {self.PARTITION_KEY: pk}
         if sk:
             key[self.SORT_KEY] = sk
@@ -63,7 +63,7 @@ class DDBClient:
 
         return
 
-    def get_equals(self, partition_key: str, sort_key: str = None) -> List:
+    def get_equals(self, partition_key: str, sort_key: Optional[str] = None) -> List:
         filtering_exp: ConditionBase = Key(self.PARTITION_KEY).eq(partition_key)
         if sort_key:
             filtering_exp = filtering_exp & Key(self.SORT_KEY).eq(sort_key)
