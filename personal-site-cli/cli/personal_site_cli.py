@@ -1,4 +1,4 @@
-from clients import DDBClient, GoogleMapsClient, ImmichClient, S3Client
+from clients import AmplifyClient, DDBClient, GoogleMapsClient, ImmichClient, S3Client
 from utils.cli_utils import cls, get_selection, print_figlet
 from utils.constants import APP_NAME
 
@@ -14,17 +14,19 @@ class PersonalSiteCLI(BaseCLI):
         google_maps_client: GoogleMapsClient,
         immich_client: ImmichClient,
         s3_client: S3Client,
+        amplify_client: AmplifyClient,
         ddb_client: DDBClient,
     ):
         self.immich = immich_client
         self.gm = google_maps_client
         self.s3 = s3_client
+        self.amplify = amplify_client
         self.dynamo = ddb_client
 
         self._menu_options = ["Travel", "Resume", "Home"]
-        self._travel_cli = TravelCLI(google_maps_client, immich_client, s3_client, ddb_client)
+        self._travel_cli = TravelCLI(google_maps_client, immich_client, s3_client, amplify_client)
         self._resume_cli = ResumeCLI(s3_client, ddb_client)
-        self._home_cli = HomeCLI(immich_client, s3_client, ddb_client)
+        self._home_cli = HomeCLI(immich_client, s3_client, amplify_client)
 
         self._run = False
 

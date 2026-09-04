@@ -1,14 +1,13 @@
 #! /usr/bin/env python3
 """
-Restores photo records saved by reimport_photos.py.
+Restores TravelPhoto rows saved by reimport_photos.py.
 
-Each re-imported place has a JSON backup of the records that were deleted.
-This puts them back, and optionally removes the records the re-import created,
-which together revert a place to exactly its previous state.
+Each re-imported place has a JSON backup of the rows that were deleted.  This
+puts them back, and optionally removes the rows the re-import created, which
+together revert a place to exactly its previous state.
 
-The S3 objects the restored records point at are still there unless
---delete-old-s3 was used during the re-import, so a plain restore is enough to
-bring a place back.
+The S3 objects the restored rows point at are still there, so a plain restore
+is enough to bring a place back.
 
 Dry run by default; pass --apply to write.
 """
@@ -21,18 +20,13 @@ import sys
 from decimal import Decimal
 from typing import Any, Dict, List
 
-sys.path.insert(
-    0,
-    os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "personal-site-cli"),
-)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(SCRIPT_DIR), "personal-site-cli"))
 
 import boto3  # noqa: E402
 
-from clients import DDBClient, Namespaces, S3Client, TravelEntities  # noqa: E402
+from clients import AmplifyClient  # noqa: E402
 from conf.config import Config  # noqa: E402
-
-PHOTO_PK = f"{Namespaces.TRAVEL}#{TravelEntities.PHOTO}"
-PHOTO_SK_FS = "{place_id}#{photo_id}"
 
 
 def decode_decimals(obj: Dict[str, Any]) -> Any:
@@ -43,20 +37,20 @@ def decode_decimals(obj: Dict[str, Any]) -> Any:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--backup-dir", default="reimport_backups")
+    parser.add_argument("--backup-dir", default="amplify_backups")
     parser.add_argument("--place-id", help="restore only this place (default: every backup)")
     parser.add_argument("--apply", action="store_true", help="write (default: dry run)")
     parser.add_argument(
         "--purge-current",
         action="store_true",
-        help="also delete records the re-import created, reverting the place completely",
+        help="also delete rows the re-import created, reverting the place completely",
     )
     args = parser.parse_args()
 
     config = Config.from_env_file(".env")
-    session = boto3.Session(**config.boto3_session_kwargs())
-    ddb = DDBClient(session, config.aws_table_name)
-    s3 = S3Client(session, bucket_name=config.aws_photos_bucket)
+    amplify = AmplifyClient(
+        boto3.Session(**config.boto3_session_kwargs()), config.amplify_table_suffix
+    )
 
     pattern = f"{args.place_id}.json" if args.place_id else "*.json"
     paths = sorted(glob.glob(os.path.join(args.backup_dir, pattern)))
@@ -65,57 +59,48 @@ def main() -> int:
         return 1
 
     print(f"mode: {'APPLY' if args.apply else 'DRY RUN'}   backups: {len(paths)}")
-    print(f"current records: {'PURGED' if args.purge_current else 'left in place'}\n")
+    print(f"current rows: {'PURGED' if args.purge_current else 'left in place'}\n")
 
-    restored = purged = missing_objects = 0
+    # One scan up front; the photo table has no query path by place
+    current: Dict[str, List[Dict[str, Any]]] = {}
+    for row in amplify.get_all_photos():
+        current.setdefault(row["placeId"], []).append(row)
+
+    restored = purged = skipped = 0
 
     for path in paths:
         with open(path) as handle:
             backup = json.load(handle, object_hook=decode_decimals)
 
+        if backup.get("model") != "TravelPhoto":
+            print(f"  {os.path.basename(path)}: not an Amplify backup -- SKIPPED")
+            skipped += 1
+            continue
+
         place_id = backup["place_id"]
-        records: List[Dict[str, Any]] = backup["records"]
-        current = ddb.get_begins_with(PHOTO_PK, place_id)
-        backed_up_ids = {r["photo_id"] for r in records}
+        rows: List[Dict[str, Any]] = backup["rows"]
+        live = current.get(place_id, [])
+        backed_up_ids = {r["photoId"] for r in rows}
 
-        # Verify the S3 objects the backup refers to still exist, otherwise the
-        # restored records would point at nothing
-        absent = [
-            key
-            for key in backup["s3_keys"][:5]
-            if not s3.does_image_exist(key)  # sampled; full check is slow
-        ]
-        if absent:
-            missing_objects += 1
-
-        print(
-            f"  {backup['place_name']}: restoring {len(records)} records "
-            f"(currently {len(current)})"
-        )
+        print(f"  {backup['place_name']}: restoring {len(rows)} rows (currently {len(live)})")
 
         if not args.apply:
             continue
 
-        for record in records:
-            ddb.put(
-                PHOTO_PK,
-                PHOTO_SK_FS.format(place_id=place_id, photo_id=record["photo_id"]),
-                record,
-            )
-        restored += len(records)
+        for row in rows:
+            amplify.put_photo(row)
+        restored += len(rows)
 
         if args.purge_current:
-            for record in current:
-                if record["photo_id"] in backed_up_ids:
+            for row in live:
+                if row["photoId"] in backed_up_ids:
                     continue
-                ddb.delete(
-                    PHOTO_PK,
-                    PHOTO_SK_FS.format(place_id=place_id, photo_id=record["photo_id"]),
-                )
+                amplify.delete_photo(row["albumId"], row["photoId"])
                 purged += 1
 
-    print(f"\n  records restored: {restored}")
-    print(f"  records purged  : {purged}")
+    print(f"\n  rows restored: {restored}")
+    print(f"  rows purged  : {purged}")
+    print(f"  files skipped: {skipped}")
     if not args.apply:
         print("\nDry run only. Re-run with --apply to write.")
     return 0

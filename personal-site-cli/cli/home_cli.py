@@ -1,6 +1,5 @@
 from typing import List, Set
 from .base_cli import BaseCLI
-from attrs import asdict
 from utils.cli_utils import (
     clr_line,
     cls,
@@ -12,7 +11,7 @@ from utils.cli_utils import (
 from utils.constants import (
     APP_NAME,
 )
-from clients import DDBClient, ImmichClient, S3Client, Namespaces, HomeEntities
+from clients import AmplifyClient, ImmichClient, S3Client, home_photo_item
 from utils.photo_processing import (
     IMAGE_TYPE,
     hash_buffer_md5,
@@ -26,17 +25,16 @@ from PIL import Image
 
 
 class HomeCLI(BaseCLI):
-    PHOTO_PK = f"{Namespaces.HOME}#{HomeEntities.PHOTO}"
     MAX_PHOTO_SIZE = 1024
 
     def __init__(
         self,
         immich_client: ImmichClient,
         s3_client: S3Client,
-        ddb_client: DDBClient,
+        amplify_client: AmplifyClient,
     ):
         self.s3_client = s3_client
-        self.ddb_client = ddb_client
+        self.amplify = amplify_client
         self.immich_client = immich_client
 
         self._run = False
@@ -119,7 +117,7 @@ class HomeCLI(BaseCLI):
         """
         A method for getting the existing Home page photos
         """
-        existing = self.ddb_client.get_equals(self.PHOTO_PK)
+        existing = self.amplify.get_home_photos()
         return set([image["hsh"] for image in existing])
 
     def _process_photos(self, album_id: str) -> None:
@@ -142,9 +140,9 @@ class HomeCLI(BaseCLI):
                 clr_line()
                 continue
 
-            file_path = f"{Namespaces.HOME}/{hsh}.{IMAGE_TYPE}"
+            file_path = f"HOME/{hsh}.{IMAGE_TYPE}"
             s3_path = self.s3_client.write_image_to_s3(
-                file_path, buffer, ACL="public-read", ContentType=f"image/{IMAGE_TYPE}"
+                file_path, buffer, ContentType=f"image/{IMAGE_TYPE}"
             )
 
             photo = Photo(
@@ -155,5 +153,5 @@ class HomeCLI(BaseCLI):
                 creation_timestamp=self.immich_client.asset_timestamp(obj),
                 hsh=hsh,
             )
-            self.ddb_client.put(self.PHOTO_PK, hsh, asdict(photo))
+            self.amplify.put_home_photo(home_photo_item(photo))
             clr_line()

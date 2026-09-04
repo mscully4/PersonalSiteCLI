@@ -76,7 +76,7 @@ class ResumeCLI(BaseCLI):
         file_path = f"resume/images/{file_name}"
 
         s3_path = self.s3_client.write_image_to_s3(
-            file_path, buffer, ACL="public-read", ContentType=f"image/{IMAGE_TYPE}"
+            file_path, buffer, ContentType=f"image/{IMAGE_TYPE}"
         )
         return s3_path
 

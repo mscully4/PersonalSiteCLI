@@ -10,11 +10,16 @@ class S3Client:
     IMAGE_DIRECTORY = "images"
     THUMBNAIL_DIRECTORY = "thumbnails"
 
-    def __init__(self, session: Session, bucket_name: str):
+    def __init__(self, session: Session, bucket_name: str, base_url: str = ""):
         self._s3_resource: S3ServiceResource = session.resource("s3")
         self.bucket_name = bucket_name
         self.region = session.region_name
-        self.base_url = "https://{}.s3.{}.amazonaws.com".format(self.bucket_name, self.region)
+
+        # The site serves images through CloudFront, so the recorded URL is the
+        # distribution rather than the bucket it fronts
+        self.base_url = base_url.rstrip("/") or "https://{}.s3.{}.amazonaws.com".format(
+            self.bucket_name, self.region
+        )
 
     def generate_s3_path_for_image(self, destination_id: str, place_id: str, file_name: str) -> str:
         return f"{self.IMAGE_DIRECTORY}/{destination_id}/{place_id}/{file_name}".replace(" ", "_")

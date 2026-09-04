@@ -9,6 +9,7 @@ personal-site-cli/conf/config.yaml
 album_relink_report.csv
 album_rebuild_report.csv
 reimport_backups/
+amplify_backups/
 
 # Python
 __pycache__/

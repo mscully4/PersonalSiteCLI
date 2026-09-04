@@ -27,11 +27,8 @@ sys.path.insert(
 import boto3  # noqa: E402
 from rapidfuzz import fuzz, process, utils  # noqa: E402
 
-from clients import DDBClient, ImmichClient, Namespaces, TravelEntities  # noqa: E402
+from clients import AmplifyClient, ImmichClient  # noqa: E402
 from conf.config import Config  # noqa: E402
-
-ALBUM_PK = f"{Namespaces.TRAVEL}#{TravelEntities.ALBUM}"
-ALBUM_SK_FS = "{place_id}#{album_id}"
 
 # Scoring uses fuzz.ratio, NOT token_set_ratio.  token_set_ratio returns 100
 # whenever one token set is a subset of the other, so "Yellowstone" scored a
@@ -79,7 +76,7 @@ def main() -> int:
 
     config = Config.from_env_file(".env")
     session = boto3.Session(**config.boto3_session_kwargs())
-    ddb = DDBClient(session, config.aws_table_name)
+    amplify = AmplifyClient(session, config.amplify_table_suffix)
     immich = ImmichClient(config.immich_base_url, config.immich_api_key)
     immich.ping()
 
@@ -88,7 +85,7 @@ def main() -> int:
     names = list(exact)
     by_id = {a["id"]: a for a in immich_albums}
 
-    records: List[Dict[str, Any]] = ddb.get_equals(ALBUM_PK)
+    records: List[Dict[str, Any]] = amplify.get_all_albums()
     print(f"album records: {len(records)}   immich albums: {len(immich_albums)}")
     print(f"mode: {'APPLY' if args.apply else 'DRY RUN'}\n")
 
@@ -97,7 +94,7 @@ def main() -> int:
 
     for record in records:
         title = record["title"].strip()
-        old_id = record["album_id"]
+        old_id = record["albumId"]
         closest = None
         new_id, how, score = match_album(title, names, exact)
 
@@ -125,7 +122,7 @@ def main() -> int:
                 "stored_title": title,
                 "immich_album_name": matched_album.get("albumName", ""),
                 "immich_asset_count": matched_album.get("assetCount", ""),
-                "place_id": record["place_id"],
+                "place_id": record["placeId"],
                 "old_album_id": old_id,
                 "new_album_id": new_id or "",
             }
@@ -134,11 +131,18 @@ def main() -> int:
         if not args.apply or new_id is None or new_id == old_id:
             continue
 
-        updated = dict(record, album_id=new_id)
-        # Put the new record before removing the old one, so a failure between
+        # albumId is part of the key, so a relink is a put of the new row
+        # followed by a delete of the old one.  Put first, so a failure between
         # the two leaves the album linked twice rather than not at all
-        ddb.put(ALBUM_PK, ALBUM_SK_FS.format(place_id=record["place_id"], album_id=new_id), updated)
-        ddb.delete(ALBUM_PK, ALBUM_SK_FS.format(place_id=record["place_id"], album_id=old_id))
+        amplify.put_album(
+            {
+                "placeId": record["placeId"],
+                "albumId": new_id,
+                "destinationId": record["destinationId"],
+                "title": record["title"],
+            }
+        )
+        amplify.delete_album(record["placeId"], old_id)
         counts["written"] += 1
 
     with open(args.report, "w", newline="") as handle:

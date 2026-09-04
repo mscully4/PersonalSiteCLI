@@ -2,12 +2,17 @@ from io import BytesIO
 from typing import Dict, List, Optional, Set
 
 from clients import (
-    DDBClient,
+    AmplifyClient,
     GoogleMapsClient,
     ImmichClient,
-    Namespaces,
     S3Client,
-    TravelEntities,
+    album_item,
+    album_kwargs,
+    destination_item,
+    destination_kwargs,
+    photo_item,
+    place_item,
+    place_kwargs,
 )
 from exceptions import InvalidStateException
 from models.google_maps import GeocodedDestination, GeocodedPlace
@@ -42,27 +47,17 @@ from .base_cli import BaseCLI
 
 
 class TravelCLI(BaseCLI):
-    DESTINATION_PK = f"{Namespaces.TRAVEL}#{TravelEntities.DESTINATION}"
-    PLACE_PK = f"{Namespaces.TRAVEL}#{TravelEntities.PLACE}"
-    PHOTO_PK = f"{Namespaces.TRAVEL}#{TravelEntities.PHOTO}"
-    ALBUM_PK = f"{Namespaces.TRAVEL}#{TravelEntities.ALBUM}"
-
-    DESTINATION_SK_FS = ""
-    PLACE_SK_FS = "{destination_id}#{place_id}"
-    PHOTO_SK_FS = "{place_id}#{photo_id}"
-    ALBUM_SK_FS = "{place_id}#{album_id}"
-
     def __init__(
         self,
         google_maps_client: GoogleMapsClient,
         immich_client: ImmichClient,
         s3_client: S3Client,
-        ddb_client: DDBClient,
+        amplify_client: AmplifyClient,
     ):
         self.google_maps_client = google_maps_client
         self.immich_client = immich_client
         self.s3_client = s3_client
-        self.ddb_client = ddb_client
+        self.amplify = amplify_client
 
         self._run = False
 
@@ -120,8 +115,10 @@ class TravelCLI(BaseCLI):
         """
         A method for retrieving all Destinations
         """
-        query_result = self.ddb_client.get_equals(self.DESTINATION_PK)
-        destinations: List[Destination] = [Destination(**obj) for obj in query_result]
+        query_result = self.amplify.get_destinations()
+        destinations: List[Destination] = [
+            Destination(**destination_kwargs(obj)) for obj in query_result
+        ]
         destinations.sort(key=lambda x: [x.country_code, x.name])
         return destinations
 
@@ -129,8 +126,8 @@ class TravelCLI(BaseCLI):
         """
         A method for retrieving all Places for a Destination
         """
-        query_result = self.ddb_client.get_begins_with(self.PLACE_PK, destination.place_id)
-        places: List[Place] = [Place(**obj) for obj in query_result]
+        query_result = self.amplify.get_places(destination.place_id)
+        places: List[Place] = [Place(**place_kwargs(obj)) for obj in query_result]
         places.sort(key=lambda x: x.name)
         return places
 
@@ -138,7 +135,7 @@ class TravelCLI(BaseCLI):
         """
         A method for retrieving the album of a place
         """
-        query_result = self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
+        query_result = self.amplify.get_albums(place.place_id)
         if len(query_result) > 1:
             raise InvalidStateException(
                 f"More than one album exists for Place: {place.place_id} under Destination: {place.destination_id}"
@@ -149,7 +146,7 @@ class TravelCLI(BaseCLI):
                 f"No album exists for Place: {place.place_id} under Destination: {place.destination_id}"
             )
 
-        return Album(**query_result[0])
+        return Album(**album_kwargs(query_result[0]))
 
     def add_destination(self) -> None:
         """
@@ -214,7 +211,9 @@ class TravelCLI(BaseCLI):
         destination = Destination(place_id=id_, **geocoded_destination.asdict())
 
         # Check if a record for the Destination already exists
-        record = self.ddb_client.get_equals(self.DESTINATION_PK, destination.place_id)
+        record = [
+            d for d in self.amplify.get_destinations() if d["destinationId"] == destination.place_id
+        ]
 
         # If a record already exists for the Destination, ensure the user wants to continue
         if record and not ask_yes_no_question(
@@ -302,10 +301,11 @@ class TravelCLI(BaseCLI):
         )
 
         # Check if a record for the place already exists
-        record = self.ddb_client.get_equals(
-            self.PLACE_PK,
-            self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
-        )
+        record = [
+            p
+            for p in self.amplify.get_places(place.destination_id)
+            if p["placeId"] == place.place_id
+        ]
 
         # If a record already exists for the Destination, ensure the user wants to continue
         if record and not ask_yes_no_question(
@@ -430,27 +430,17 @@ class TravelCLI(BaseCLI):
             if existing_album.album_id != album.album_id:
                 self._delete_existing_album(existing_album)
 
-        self.ddb_client.put(
-            self.ALBUM_PK,
-            self.ALBUM_SK_FS.format(place_id=place.place_id, album_id=album.album_id),
-            album.asdict(),
-        )
+        self.amplify.put_album(album_item(album))
 
         print_figlet(APP_NAME)
         if ask_yes_no_question("Would you like to add photos to this album? (y/n): "):
             self.add_photos(destination=destination, place=place)
 
     def _get_existing_albums(self, place: Place) -> List[Album]:
-        return [
-            Album(**album)
-            for album in self.ddb_client.get_begins_with(self.ALBUM_PK, place.place_id)
-        ]
+        return [Album(**album_kwargs(album)) for album in self.amplify.get_albums(place.place_id)]
 
     def _delete_existing_album(self, album: Album) -> None:
-        self.ddb_client.delete(
-            pk=self.ALBUM_PK,
-            sk=self.ALBUM_SK_FS.format(place_id=album.place_id, album_id=album.album_id),
-        )
+        self.amplify.delete_album(album.place_id, album.album_id)
 
     def add_photos(
         self, destination: Optional[Destination] = None, place: Optional[Place] = None
@@ -522,16 +512,21 @@ class TravelCLI(BaseCLI):
             self.add_photos(destination=destination)
 
     def _get_existing_photos(self, place: Place) -> Set[str]:
-        existing = self.ddb_client.get_begins_with(self.PHOTO_PK, place.place_id)
+        existing = self.amplify.get_photos_for_place(place.place_id)
         return set([image["hsh"] for image in existing])
 
-    def _process_photos(self, destination: Destination, place: Place) -> None:
+    def _process_photos(
+        self, destination: Destination, place: Place, existing: Optional[Set[str]] = None
+    ) -> None:
         if not self.quiet:
             print_figlet(APP_NAME)
         album = self._get_album(place)
         photos = self.immich_client.get_album_photos(album.album_id)
 
-        existing = self._get_existing_photos(place)
+        # Locating a place's photos needs a table scan, so a batch caller can
+        # pass the hashes it already has rather than scanning once per place
+        if existing is None:
+            existing = self._get_existing_photos(place)
         chunks = split(photos, THREADS)
 
         progress: Dict[int, float] = {}
@@ -575,11 +570,7 @@ class TravelCLI(BaseCLI):
                 hsh=hsh,
                 thumbnail_src=thumbnail_src,
             )
-            self.ddb_client.put(
-                self.PHOTO_PK,
-                self.PHOTO_SK_FS.format(place_id=place.place_id, photo_id=photo.photo_id),
-                photo.asdict(),
-            )
+            self.amplify.put_photo(photo_item(photo))
 
     def _print_photo_progress(self, progress):
         if self.quiet:
@@ -598,7 +589,7 @@ class TravelCLI(BaseCLI):
         )
 
         return self.s3_client.write_image_to_s3(
-            file_path, buffer, ACL="public-read", ContentType=f"image/{IMAGE_TYPE}"
+            file_path, buffer, ContentType=f"image/{IMAGE_TYPE}"
         )
 
     def _upload_thumbnail_to_s3(
@@ -614,7 +605,6 @@ class TravelCLI(BaseCLI):
         s3_path = self.s3_client.write_image_to_s3(
             thumbnail_path,
             buffer,
-            ACL="public-read",
             ContentType=f"image/{IMAGE_TYPE}",
         )
         return s3_path
@@ -647,7 +637,7 @@ class TravelCLI(BaseCLI):
             destination = destinations[sel - 1]
 
         new_dest: Destination = edit_obj(destination)
-        self.ddb_client.put(self.DESTINATION_PK, destination.place_id, new_dest.asdict())
+        self.amplify.put_destination(destination_item(new_dest))
 
     # Menu Option 5
     def edit_place(
@@ -704,11 +694,7 @@ class TravelCLI(BaseCLI):
             place = places[sel - 1]
 
         new_place: Place = edit_obj(place)
-        self.ddb_client.put(
-            self.PLACE_PK,
-            self.PLACE_SK_FS.format(destination_id=place.destination_id, place_id=place.place_id),
-            new_place.asdict(),
-        )
+        self.amplify.put_place(place_item(new_place))
 
     def delete_destination(self) -> None:
         """
@@ -735,7 +721,7 @@ class TravelCLI(BaseCLI):
 
         print_figlet(APP_NAME)
         destination = destinations[sel - 1]
-        self.ddb_client.delete(pk=self.DESTINATION_PK, sk=destination.place_id)
+        self.amplify.delete_destination(destination.place_id)
 
     def delete_place(self) -> None:
         """
@@ -784,11 +770,6 @@ class TravelCLI(BaseCLI):
 
         place = places[sel - 1]
 
-        self.ddb_client.delete(
-            pk=self.PLACE_PK,
-            sk=self.PLACE_SK_FS.format(
-                destination_id=place.destination_id, place_id=place.place_id
-            ),
-        )
+        self.amplify.delete_place(place.destination_id, place.place_id)
 
         return
