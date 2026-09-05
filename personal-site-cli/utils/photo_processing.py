@@ -1,7 +1,6 @@
 import hashlib as hl
 import io
 
-import requests
 from PIL import Image
 
 THUMBNAIL_MAX_SIZE = 512
@@ -11,16 +10,6 @@ PHOTO_MAX_SIZE = 2048
 # JPEG, can still carry an alpha channel, which the resume logos rely on
 IMAGE_TYPE = "webp"
 IMAGE_QUALITY = 85
-
-
-def download_image(url: str) -> Image.Image:
-    r: requests.Response = requests.get(url)
-    r.raw.decode_content = True  # handle spurious Content-Encoding
-
-    # Save the file contents to a variable
-    content = r.content
-
-    return Image.open(io.BytesIO(content))
 
 
 def image_from_bytes(content: bytes) -> Image.Image:

@@ -9,8 +9,6 @@ from mypy_boto3_dynamodb.type_defs import PutItemOutputTableTypeDef, QueryOutput
 
 class Namespaces:
     TRAVEL = "TRAVEL"
-    RESUME = "RESUME"
-    HOME = "HOME"
 
 
 class TravelEntities:
@@ -18,16 +16,6 @@ class TravelEntities:
     PLACE = "PLACE"
     PHOTO = "PHOTO"
     ALBUM = "ALBUM"
-
-
-class ResumeEntities:
-    JOB = "JOB"
-    EDUCATION = "EDUCATION"
-    SKILL = "SKILL"
-
-
-class HomeEntities:
-    PHOTO = "PHOTO"
 
 
 class DDBClient:

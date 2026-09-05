@@ -1,10 +1,4 @@
-from .ddb_client import (  # noqa F401
-    DDBClient,
-    Namespaces,
-    TravelEntities,
-    ResumeEntities,
-    HomeEntities,
-)
+from .ddb_client import DDBClient, Namespaces, TravelEntities  # noqa F401
 from .amplify_client import (  # noqa F401
     AmplifyClient,
     Models,

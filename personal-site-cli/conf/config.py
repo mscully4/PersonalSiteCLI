@@ -14,8 +14,6 @@ REQUIRED_KEYS = (
     "AWS_PHOTOS_BUCKET",
     "AMPLIFY_TABLE_SUFFIX",
     "IMAGE_BASE_URL",
-    # Only the Resume CLI still uses this, the site no longer has that view
-    "AWS_TABLE_NAME",
 )
 
 
@@ -71,8 +69,10 @@ class Config:
     image_base_url: str
     aws_profile: str = ""
     # The single table the CLI wrote to before the site moved to Amplify.  Only
-    # the pre-Amplify migration scripts still reference it
+    # rebuild_albums.py still reads it, for the capture times it matches on, and
+    # it lives in a different region from the Amplify tables
     aws_table_name: str = ""
+    legacy_aws_region_name: str = ""
     aws_access_key_id: str = ""
     aws_secret_access_key: str = ""
 
@@ -111,7 +111,8 @@ class Config:
             amplify_table_suffix=resolved["AMPLIFY_TABLE_SUFFIX"],
             image_base_url=resolved["IMAGE_BASE_URL"],
             aws_profile=lookup("AWS_PROFILE"),
-            aws_table_name=resolved["AWS_TABLE_NAME"],
+            aws_table_name=lookup("AWS_TABLE_NAME"),
+            legacy_aws_region_name=lookup("LEGACY_AWS_REGION_NAME"),
             aws_access_key_id=lookup("AWS_ACCESS_KEY_ID"),
             aws_secret_access_key=lookup("AWS_SECRET_ACCESS_KEY"),
         )

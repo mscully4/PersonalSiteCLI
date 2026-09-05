@@ -84,7 +84,11 @@ def main() -> int:
     args = parser.parse_args()
 
     config = Config.from_env_file(".env")
-    ddb = DDBClient(boto3.Session(**config.boto3_session_kwargs()), config.aws_table_name)
+    # The old single table is in a different region from the Amplify tables
+    legacy = dict(config.boto3_session_kwargs())
+    if config.legacy_aws_region_name:
+        legacy["region_name"] = config.legacy_aws_region_name
+    ddb = DDBClient(boto3.Session(**legacy), config.aws_table_name)
     immich = ImmichClient(config.immich_base_url, config.immich_api_key)
     immich.ping()
 

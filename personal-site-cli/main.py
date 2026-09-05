@@ -5,7 +5,7 @@ import os
 import boto3
 
 from cli import PersonalSiteCLI
-from clients import AmplifyClient, DDBClient, GoogleMapsClient, ImmichClient, S3Client
+from clients import AmplifyClient, GoogleMapsClient, ImmichClient, S3Client
 from conf.config import Config
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,16 +27,11 @@ def main() -> None:
     )
     amplify_client = AmplifyClient(session, config.amplify_table_suffix)
 
-    # The Resume view was dropped from the site, so that CLI still writes to the
-    # pre-Amplify single table
-    ddb_client = DDBClient(session, config.aws_table_name)
-
     cli = PersonalSiteCLI(
         google_maps_client=google_maps_client,
         immich_client=immich_client,
         s3_client=s3_client,
         amplify_client=amplify_client,
-        ddb_client=ddb_client,
     )
     cli.run()
 
