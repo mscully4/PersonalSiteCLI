@@ -18,7 +18,7 @@ import json
 import os
 import sys
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(SCRIPT_DIR), "personal-site-cli"))
@@ -61,12 +61,14 @@ def main() -> int:
     print(f"mode: {'APPLY' if args.apply else 'DRY RUN'}   backups: {len(paths)}")
     print(f"current rows: {'PURGED' if args.purge_current else 'left in place'}\n")
 
-    # One scan up front; the photo table has no query path by place
+    # One scan up front; a run restores many places, and one scan of the table
+    # beats a query per place through the placeId GSI
     current: Dict[str, List[Dict[str, Any]]] = {}
     for row in amplify.get_all_photos():
         current.setdefault(row["placeId"], []).append(row)
 
     restored = purged = skipped = 0
+    touched_destinations: Set[str] = set()
 
     for path in paths:
         with open(path) as handle:
@@ -97,6 +99,19 @@ def main() -> int:
                     continue
                 amplify.delete_photo(row["albumId"], row["photoId"])
                 purged += 1
+
+        # The place's card photo was chosen from the rows being replaced, so it
+        # would otherwise keep pointing at a photo this run just deleted
+        destination_id = backup.get("destination_id") or next(
+            (row["destinationId"] for row in rows), None
+        )
+        if destination_id:
+            amplify.refresh_place_card_photo(destination_id, place_id)
+            touched_destinations.add(destination_id)
+
+    # Once per destination: the rollup reads every place the destination holds
+    for destination_id in sorted(touched_destinations):
+        amplify.refresh_destination_card_photo(destination_id)
 
     print(f"\n  rows restored: {restored}")
     print(f"  rows purged  : {purged}")

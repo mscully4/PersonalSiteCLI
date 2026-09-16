@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Any, Dict, List, Optional
 
 from boto3 import Session
-from boto3.dynamodb.conditions import Attr, ConditionBase, Key
+from boto3.dynamodb.conditions import ConditionBase, Key
 from exceptions import DynamoDBException
 from mypy_boto3_dynamodb.service_resource import Table
 
@@ -33,6 +33,21 @@ TYPENAMES = {
 # TravelPhoto partitions on the album, keyed by the album's full composite key
 PHOTO_ALBUM_KEY_FS = "{place_id}#{album_id}"
 
+# A GSI on TravelPhoto.placeId, added so the site can open one place's gallery
+# without reading the whole table
+PHOTOS_BY_PLACE_INDEX = "travelPhotosByPlaceId"
+
+# Fields the site writes but the CLI's models do not carry.  A put rebuilds the
+# whole row, so these are read back off the existing row and carried over rather
+# than silently dropped by an edit
+PRESERVED_FIELDS = {
+    Models.DESTINATION: ("cardPhotoThumbnailSrc",),
+    Models.PLACE: ("cardPhotoThumbnailSrc",),
+}
+
+# Cards are 4:3, so the photo closest to that ratio crops the least
+DESIRED_RATIO = Decimal(4) / Decimal(3)
+
 
 def to_decimal(value: Any) -> Decimal:
     return Decimal(str(value))
@@ -40,6 +55,40 @@ def to_decimal(value: Any) -> Decimal:
 
 def coords(latitude: Any, longitude: Any) -> Dict[str, Decimal]:
     return {"lat": to_decimal(latitude), "lng": to_decimal(longitude)}
+
+
+def aspect_ratio(photo: Dict[str, Any]) -> Optional[Decimal]:
+    """
+    A photo's width over its height, or None if either is missing or zero.
+
+    The site declares width and height as strings and the CLI writes them as
+    numbers, so both have to be accepted
+    """
+    try:
+        width = to_decimal(photo["width"])
+        height = to_decimal(photo["height"])
+    except (KeyError, TypeError, ArithmeticError, ValueError):
+        return None
+
+    if height == 0:
+        return None
+
+    return width / height
+
+
+def closest_to_four_thirds(photos: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Picks the photo whose aspect ratio is nearest 4:3.
+
+    This is the same rule the site's scripts/backfillCardPhotos.ts applies, and
+    the two have to agree or a re-run of the backfill would churn every row the
+    CLI wrote.  Photos with an unusable width or height are ignored
+    """
+    usable = [(ratio, photo) for photo in photos if (ratio := aspect_ratio(photo)) is not None]
+    if not usable:
+        return None
+
+    return min(usable, key=lambda pair: abs(DESIRED_RATIO - pair[0]))[1]
 
 
 def timestamp() -> str:
@@ -70,7 +119,9 @@ class AmplifyClient:
             self._tables[model] = resource.Table(f"{model}{self._suffix}")
         return self._tables[model]
 
-    def _query(self, model: str, expression: ConditionBase) -> List[Dict[str, Any]]:
+    def _query(
+        self, model: str, expression: ConditionBase, index: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """
         Runs a query, following pagination.  A single query call stops at
         DynamoDB's 1MB page, which would silently truncate a large album
@@ -78,6 +129,9 @@ class AmplifyClient:
         table = self._table(model)
         items: List[Dict[str, Any]] = []
         kwargs: Dict[str, Any] = {"KeyConditionExpression": expression}
+
+        if index is not None:
+            kwargs["IndexName"] = index
 
         while True:
             resp = table.query(**kwargs)
@@ -102,8 +156,25 @@ class AmplifyClient:
 
             kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
 
-    def _put(self, model: str, item: Dict[str, Any]) -> None:
+    def _put(self, model: str, item: Dict[str, Any], key: Optional[Dict[str, str]] = None) -> None:
         now = timestamp()
+        existing = self._get(model, key) if key else None
+
+        if existing:
+            # An edit rebuilds the row from a CLI model, which does not carry
+            # every field the site stores, so the absent ones are carried over
+            # from the row being replaced rather than dropped
+            carried = {
+                field: existing[field]
+                for field in PRESERVED_FIELDS.get(model, ())
+                if field not in item and field in existing
+            }
+            item = {
+                **carried,
+                **item,
+                "createdAt": item.get("createdAt", existing.get("createdAt", now)),
+            }
+
         item = {
             **item,
             "__typename": TYPENAMES[model],
@@ -115,6 +186,19 @@ class AmplifyClient:
         if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
             raise DynamoDBException(f"Put operation failed: {resp}")
 
+    def _get(self, model: str, key: Dict[str, str]) -> Optional[Dict[str, Any]]:
+        return self._table(model).get_item(Key=key).get("Item")
+
+    def _set_field(self, model: str, key: Dict[str, str], field: str, value: Any) -> None:
+        resp = self._table(model).update_item(
+            Key=key,
+            UpdateExpression="SET #field = :value, #updatedAt = :now",
+            ExpressionAttributeNames={"#field": field, "#updatedAt": "updatedAt"},
+            ExpressionAttributeValues={":value": value, ":now": timestamp()},
+        )
+        if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            raise DynamoDBException(f"Update operation failed: {resp}")
+
     def _delete(self, model: str, key: Dict[str, str]) -> None:
         resp = self._table(model).delete_item(Key=key)
         if resp["ResponseMetadata"]["HTTPStatusCode"] != 200:
@@ -125,7 +209,15 @@ class AmplifyClient:
         return self._scan(Models.DESTINATION)
 
     def put_destination(self, item: Dict[str, Any]) -> None:
-        self._put(Models.DESTINATION, item)
+        self._put(Models.DESTINATION, item, key={"destinationId": item["destinationId"]})
+
+    def update_destination_card_photo(self, destination_id: str, thumbnail_src: str) -> None:
+        self._set_field(
+            Models.DESTINATION,
+            {"destinationId": destination_id},
+            "cardPhotoThumbnailSrc",
+            thumbnail_src,
+        )
 
     def delete_destination(self, destination_id: str) -> None:
         self._delete(Models.DESTINATION, {"destinationId": destination_id})
@@ -135,7 +227,18 @@ class AmplifyClient:
         return self._query(Models.PLACE, Key("destinationId").eq(destination_id))
 
     def put_place(self, item: Dict[str, Any]) -> None:
-        self._put(Models.PLACE, item)
+        key = {"destinationId": item["destinationId"], "placeId": item["placeId"]}
+        self._put(Models.PLACE, item, key=key)
+
+    def update_place_card_photo(
+        self, destination_id: str, place_id: str, thumbnail_src: str
+    ) -> None:
+        self._set_field(
+            Models.PLACE,
+            {"destinationId": destination_id, "placeId": place_id},
+            "cardPhotoThumbnailSrc",
+            thumbnail_src,
+        )
 
     def delete_place(self, destination_id: str, place_id: str) -> None:
         self._delete(Models.PLACE, {"destinationId": destination_id, "placeId": place_id})
@@ -164,22 +267,12 @@ class AmplifyClient:
 
     def get_photos_for_place(self, place_id: str) -> List[Dict[str, Any]]:
         """
-        TravelPhoto partitions on a key that is unique per photo, so there is no
-        query path by place.  The site has the same constraint and lists the
-        whole table, so this scans with a filter
+        TravelPhoto partitions on a key that is unique per photo, so a place's
+        photos are read through the placeId GSI the site added for its galleries.
+        This used to scan the whole table with a filter, which read all 9,973
+        rows to find the handful belonging to one place
         """
-        table = self._table(Models.PHOTO)
-        items: List[Dict[str, Any]] = []
-        kwargs: Dict[str, Any] = {"FilterExpression": Attr("placeId").eq(place_id)}
-
-        while True:
-            resp = table.scan(**kwargs)
-            items += resp["Items"]
-
-            if "LastEvaluatedKey" not in resp:
-                return items
-
-            kwargs["ExclusiveStartKey"] = resp["LastEvaluatedKey"]
+        return self._query(Models.PHOTO, Key("placeId").eq(place_id), index=PHOTOS_BY_PLACE_INDEX)
 
     def get_all_photos(self) -> List[Dict[str, Any]]:
         return self._scan(Models.PHOTO)
@@ -204,6 +297,47 @@ class AmplifyClient:
     def get_album(self, place_id: str) -> Optional[Dict[str, Any]]:
         albums = self.get_albums(place_id)
         return albums[0] if albums else None
+
+    # -- Card photos -----------------------------------------------------
+    #
+    # The travel view reads a representative thumbnail off the place and the
+    # destination rather than choosing one from the photo table at runtime, so
+    # anything that changes a place's photos has to rewrite these or the card
+    # falls back to a placeholder, or keeps pointing at a deleted photo
+
+    def refresh_place_card_photo(
+        self, destination_id: str, place_id: str
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Recomputes a place's card photo from the photos it currently holds, and
+        returns the photo chosen, or None when the place has no usable photos
+        """
+        best = closest_to_four_thirds(self.get_photos_for_place(place_id))
+        if best is None:
+            return None
+
+        self.update_place_card_photo(destination_id, place_id, best["thumbnailSrc"])
+        return best
+
+    def refresh_destination_card_photo(self, destination_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Rolls the card photos of a destination's places up to the destination,
+        which is how the site's scripts/backfillCardPhotos.ts built the
+        existing rows
+        """
+        candidates = [
+            best
+            for place in self.get_places(destination_id)
+            if (best := closest_to_four_thirds(self.get_photos_for_place(place["placeId"])))
+            is not None
+        ]
+
+        best = closest_to_four_thirds(candidates)
+        if best is None:
+            return None
+
+        self.update_destination_card_photo(destination_id, best["thumbnailSrc"])
+        return best
 
 
 # -- Model conversion ----------------------------------------------------

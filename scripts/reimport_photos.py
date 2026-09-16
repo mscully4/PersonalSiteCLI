@@ -28,7 +28,7 @@ import sys
 import time
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Set
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(SCRIPT_DIR), "personal-site-cli"))
@@ -114,8 +114,9 @@ def main() -> int:
     destinations = {d["destinationId"]: d for d in amplify.get_destinations()}
     albums = {a["placeId"]: a for a in amplify.get_all_albums()}
 
-    # One scan up front rather than one per place: the photo table has no query
-    # path by place, so each lookup would otherwise be a full scan
+    # One scan up front rather than a query per place.  A place's photos can be
+    # read through the placeId GSI now, but a whole run touches every place, and
+    # one scan of the table beats several hundred queries
     by_place: Dict[str, List[Dict[str, Any]]] = collections.defaultdict(list)
     for row in amplify.get_all_photos():
         by_place[row["placeId"]].append(row)
@@ -137,6 +138,7 @@ def main() -> int:
 
     stats = collections.Counter()
     started = time.time()
+    touched_destinations: Set[str] = set()
 
     for index, place in enumerate(places, start=1):
         album = albums.get(place.place_id)
@@ -201,6 +203,19 @@ def main() -> int:
             amplify.delete_photo(row["albumId"], row["photoId"])
             stats["removed"] += 1
 
+        # After the superseded rows are gone, not before: the card photo is
+        # chosen from what the place currently holds, and the import runs while
+        # the old rows are still there
+        amplify.refresh_place_card_photo(place.destination_id, place.place_id)
+        touched_destinations.add(place.destination_id)
+
+    # Once per destination rather than once per place: the rollup reads every
+    # place in the destination, so doing it inside the loop would repeat that
+    # read for each place it holds
+    for destination_id in sorted(touched_destinations):
+        amplify.refresh_destination_card_photo(destination_id)
+    stats["destination_cards"] = len(touched_destinations)
+
     print(f"\nelapsed: {time.time() - started:.1f}s")
     for key in (
         "imported",
@@ -210,6 +225,7 @@ def main() -> int:
         "skipped_not_relinked",
         "skipped_would_lose",
         "failed",
+        "destination_cards",
     ):
         print(f"  {key:22}: {stats[key]}")
 

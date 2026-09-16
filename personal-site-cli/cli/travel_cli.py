@@ -499,11 +499,13 @@ class TravelCLI(BaseCLI):
             elif sel == MenuNavigationCodes.ALL:
                 for place in places:
                     self._process_photos(destination, place)
+                self.amplify.refresh_destination_card_photo(destination.place_id)
                 return
             else:
                 place = places[sel - 1]
 
         self._process_photos(destination, place)
+        self.amplify.refresh_destination_card_photo(destination.place_id)
 
         print_figlet(APP_NAME)
         if ask_yes_no_question(
@@ -540,6 +542,11 @@ class TravelCLI(BaseCLI):
 
         for thread in threads:
             thread.join()
+
+        # The site renders the card from this rather than choosing a photo at
+        # runtime, so a place whose card photo is never written shows a
+        # placeholder even though its gallery works
+        self.amplify.refresh_place_card_photo(place.destination_id, place.place_id)
 
     def _process_photo(self, chunk, destination, place, existing, thread_no, progress):
         for i, asset in enumerate(chunk):
