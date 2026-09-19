@@ -22,7 +22,9 @@ dev = [
     "black>=24.1",
     "flake8>=7.0",
     "isort>=5.13",
+    "moto[dynamodb]>=5.0",
     "mypy>=1.8",
+    "pytest>=8.0",
     "types-requests>=2.31",
 ]
 
@@ -44,3 +46,6 @@ profile = "black"
 
 # To maintain consistency with other settings
 line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
