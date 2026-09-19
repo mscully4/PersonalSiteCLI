@@ -78,17 +78,27 @@ def aspect_ratio(photo: Dict[str, Any]) -> Optional[Decimal]:
 
 def closest_to_four_thirds(photos: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     """
-    Picks the photo whose aspect ratio is nearest 4:3.
+    Picks the photo whose aspect ratio is nearest 4:3, lowest photoId winning a
+    tie.
 
     This is the same rule the site's scripts/backfillCardPhotos.ts applies, and
     the two have to agree or a re-run of the backfill would churn every row the
-    CLI wrote.  Photos with an unusable width or height are ignored
+    CLI wrote.  Nearest-to-4:3 alone was not enough to make them agree: most of
+    the library is 2048x1536, which is exactly 4:3, so ties are the norm and the
+    winner came down to the order rows happened to arrive in.  Comparing the
+    stored choices against a fresh run found 262 of 334 places differing, every
+    one of them a tie rather than a worse photo.  Sorting on (distance, photoId)
+    settles it the same way on both sides and makes the choice idempotent.
+
+    Photos with an unusable width or height are ignored
     """
     usable = [(ratio, photo) for photo in photos if (ratio := aspect_ratio(photo)) is not None]
     if not usable:
         return None
 
-    return min(usable, key=lambda pair: abs(DESIRED_RATIO - pair[0]))[1]
+    return min(usable, key=lambda pair: (abs(DESIRED_RATIO - pair[0]), pair[1].get("photoId", "")))[
+        1
+    ]
 
 
 def timestamp() -> str:
