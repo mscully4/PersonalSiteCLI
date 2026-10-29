@@ -3,6 +3,7 @@ The client's reads and writes, against tables built with the same key schemas
 and placeId index as the deployed ones.
 """
 
+from clients.amplify_client import destination_item, place_item
 from conftest import (
     make_destination,
     make_place,
@@ -13,8 +14,6 @@ from conftest import (
     stored_destination,
     stored_place,
 )
-
-from clients.amplify_client import destination_item, place_item
 
 # -- Reading a place's photos -------------------------------------------
 

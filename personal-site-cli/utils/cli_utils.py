@@ -2,8 +2,10 @@ import math
 import os
 import readline
 from typing import Any, List, Optional
+
 from attrs import asdict
 from pyfiglet import Figlet
+
 from utils.navigation import (
     MenuNavigationCodes,
     menuNavigationUserCommandsToCodes,

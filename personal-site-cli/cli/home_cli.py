@@ -1,5 +1,9 @@
 from typing import List, Set
-from .base_cli import BaseCLI
+
+from PIL import Image
+
+from clients import AmplifyClient, ImmichClient, S3Client, home_photo_item
+from models.home import Photo
 from utils.cli_utils import (
     clr_line,
     cls,
@@ -11,7 +15,7 @@ from utils.cli_utils import (
 from utils.constants import (
     APP_NAME,
 )
-from clients import AmplifyClient, ImmichClient, S3Client, home_photo_item
+from utils.navigation import MenuAction, MenuNavigationUserCommands
 from utils.photo_processing import (
     IMAGE_TYPE,
     hash_buffer_md5,
@@ -19,9 +23,8 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from utils.navigation import MenuAction, MenuNavigationUserCommands
-from models.home import Photo
-from PIL import Image
+
+from .base_cli import BaseCLI
 
 
 class HomeCLI(BaseCLI):

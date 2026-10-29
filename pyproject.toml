@@ -47,5 +47,10 @@ profile = "black"
 # To maintain consistency with other settings
 line_length = 100
 
+# The modules import each other as top level names (clients, models, utils...)
+# rather than through a package, so isort cannot tell they are first party and
+# would otherwise guess from whatever happens to be installed
+src_paths = ["personal-site-cli", "tests"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]

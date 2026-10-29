@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 from attrs import frozen
+
 from exceptions import ConfigException
 
 # Keys that the CLI cannot start without

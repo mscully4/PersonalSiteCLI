@@ -105,6 +105,7 @@ def dynamodb(fake_aws_credentials):
 @pytest.fixture
 def amplify(dynamodb):
     import boto3
+
     from clients.amplify_client import AmplifyClient
 
     return AmplifyClient(boto3.Session(region_name="us-east-2"), TABLE_SUFFIX)

@@ -6,10 +6,9 @@ echo "Running Black"
 uv run black ./personal-site-cli ./tests --check
 printf "\n"
 
-# Still disabled: 9 pre-existing files fail. Run `uv run isort ./personal-site-cli` to fix.
-# echo "Running isort"
-# uv run isort ./personal-site-cli --check-only
-# printf "\n"
+echo "Running isort"
+uv run isort ./personal-site-cli ./tests --check-only
+printf "\n"
 
 echo "Running Flake8"
 uv run flake8 ./personal-site-cli ./tests

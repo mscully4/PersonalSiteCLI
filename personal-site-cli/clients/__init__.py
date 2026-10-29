@@ -1,4 +1,3 @@
-from .ddb_client import DDBClient, Namespaces, TravelEntities  # noqa F401
 from .amplify_client import (  # noqa F401
     AmplifyClient,
     Models,
@@ -13,6 +12,7 @@ from .amplify_client import (  # noqa F401
     place_kwargs,
     to_decimal,
 )
-from .s3_client import S3Client  # noqa F401
-from .immich_client import ImmichClient  # noqa F401
+from .ddb_client import DDBClient, Namespaces, TravelEntities  # noqa F401
 from .google_maps_client import GoogleMapsClient  # noqa F401
+from .immich_client import ImmichClient  # noqa F401
+from .s3_client import S3Client  # noqa F401

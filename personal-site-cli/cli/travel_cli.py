@@ -1,5 +1,8 @@
 from io import BytesIO
+from threading import Thread
 from typing import Dict, List, Optional, Set
+
+from PIL import Image
 
 from clients import (
     AmplifyClient,
@@ -17,7 +20,6 @@ from clients import (
 from exceptions import InvalidStateException
 from models.google_maps import GeocodedDestination, GeocodedPlace
 from models.travel import Album, Destination, Photo, Place
-from PIL import Image
 from utils.cli_utils import (
     ask_yes_no_question,
     cls,
@@ -39,9 +41,7 @@ from utils.photo_processing import (
     rescale_image,
     save_image_to_buffer,
 )
-from utils.threading import split, THREADS
-
-from threading import Thread
+from utils.threading import THREADS, split
 
 from .base_cli import BaseCLI
 

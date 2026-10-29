@@ -8,11 +8,11 @@ whatever it pointed at before.
 
 from io import BytesIO
 
-from conftest import make_destination, make_place, seed_destination, seed_place, stored_place
 from PIL import Image
 
 from cli.travel_cli import TravelCLI
 from clients.amplify_client import album_item
+from conftest import make_destination, make_place, seed_destination, seed_place, stored_place
 from models.travel import Album
 
 

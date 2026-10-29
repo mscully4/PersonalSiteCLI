@@ -8,9 +8,9 @@ contract between them rather than incidental behaviour.
 """
 
 import pytest
-from conftest import photo
 
 from clients.amplify_client import aspect_ratio, closest_to_four_thirds
+from conftest import photo
 
 
 def test_picks_an_exact_four_thirds_photo():

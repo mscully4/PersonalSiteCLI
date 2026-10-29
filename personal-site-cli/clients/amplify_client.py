@@ -4,8 +4,9 @@ from typing import Any, Dict, List, Optional
 
 from boto3 import Session
 from boto3.dynamodb.conditions import ConditionBase, Key
-from exceptions import DynamoDBException
 from mypy_boto3_dynamodb.service_resource import Table
+
+from exceptions import DynamoDBException
 
 
 class Models:
