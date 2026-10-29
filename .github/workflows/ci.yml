@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      # Picks up the version pinned in .python-version.  --locked fails the
+      # build if uv.lock has drifted from pyproject.toml, rather than quietly
+      # resolving something different from what runs locally
+      - run: uv sync --group dev --locked
+
+      # The same checks a developer runs: black, flake8, mypy and pytest.  The
+      # tests run against moto, so no AWS credentials are needed or provided
+      - run: ./build.sh
